@@ -1,5 +1,5 @@
 name: soundfont_player
-description: "A Flutter plugin for loading sound fonts on iOS."
+description: "A Flutter plugin for loading sound fonts on iOS and macOS."
 version: 0.0.1
 homepage: drummachinefunk.com
 
@@ -24,4 +24,6 @@ flutter:
         package: com.example.soundfont_player
         pluginClass: SoundfontPlayerPlugin
       ios:
+        pluginClass: SoundfontPlayerPlugin
+      macos:
         pluginClass: SoundfontPlayerPlugin
