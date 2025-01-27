@@ -42,7 +42,7 @@ class SoundfontAudioPlayer {
         let rate: Double = newTempo / 60.0
         
         sequencer = AVAudioSequencer(audioEngine: audioEngine)
-        if #available(iOS 16.0, *) {
+        if #available(iOS 16.0, macOS 13.0, *) {
             let track = sequencer.createAndAppendTrack()
             track.lengthInBeats = 8
             track.isLoopingEnabled = true
@@ -72,7 +72,7 @@ class SoundfontAudioPlayer {
             componentType: myUnitType,
             componentSubType:  mySubType,
             componentManufacturer: 0x666f6f20, // 4 hex byte OSType 'foo '
-            componentFlags:        0,
+            componentFlags:        AudioComponentFlags.sandboxSafe.rawValue,
             componentFlagsMask:    0
         )
     
