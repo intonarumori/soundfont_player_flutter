@@ -32,21 +32,21 @@ public:
         sequence = {};
 
         // chord mem
-        double rhythm[] = {
-            0.0, 0.5, 0.75,
-            1.0, 1.75,
-            2.0, 2.5,
-            3.25, 3.75,
-        };
-        
-        uint8_t notes[] = {0,3,7,10};
-        for (int i = 0; i < sizeof(rhythm) / sizeof(double); i++) {
-            
-            for (int j = 0; j < sizeof(notes); j++) {
-                addEvent({rhythm[i], 0x90, notes[j], 100});
-                addEvent({rhythm[i] + 0.1, 0x80, notes[j], 0});
-            }
-        }
+//        double rhythm[] = {
+//            0.0, 0.5, 0.75,
+//            1.0, 1.75,
+//            2.0, 2.5,
+//            3.25, 3.75,
+//        };
+//        
+//        uint8_t notes[] = { 0 };
+//        for (int i = 0; i < sizeof(rhythm) / sizeof(double); i++) {
+//            
+//            for (int j = 0; j < sizeof(notes); j++) {
+//                addEvent({rhythm[i], 0x90, notes[j], 100});
+//                addEvent({rhythm[i] + 0.1, 0x80, notes[j], 0});
+//            }
+//        }
 
         // ARP
 //        uint8_t notes[] = {0,3,7,10};
@@ -206,29 +206,28 @@ public:
                 switch (event.status) {
                     case 0x90: {
                         // Only output notes if we are holding something
-                        if (heldNote < 0) break;
-                        for (int i = 0; i < 16; i++) {
-                            if (!mPlayingNotes[i].active) {
-                                uint8_t note = event.data1 + heldNote;
-                                mPlayingNotes[i].active = true;
-                                mPlayingNotes[i].eventNote = event.data1;
-                                mPlayingNotes[i].shiftedNote = note;
-                                uint8_t midiData[] = { event.status, note, event.data2 };
-                                mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
-                                break;
+                        for (uint8_t note = 0; note < 128; note++) {
+                            if (heldNotes.isNoteHeld(note)) {
+                                for (int i = 0; i < 16; i++) {
+                                    if (!mPlayingNotes[i].active) {
+                                        mPlayingNotes[i].active = true;
+                                        mPlayingNotes[i].eventNote = note;
+                                        mPlayingNotes[i].shiftedNote = note;
+                                        uint8_t midiData[] = { event.status, note, event.data2 };
+                                        mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
+                                        break;
+                                    }
+                                }
                             }
                         }
                     } break;
                     case 0x80: {
                         for (int i = 0; i < 16; i++) {
                             if (mPlayingNotes[i].active) {
-                                if (mPlayingNotes[i].eventNote == event.data1) {
-                                    mPlayingNotes[i].active = false;
-                                    uint8_t note = mPlayingNotes[i].shiftedNote;
-                                    uint8_t midiData[] = { event.status, note, event.data2 };
-                                    mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
-                                    break;
-                                }
+                                mPlayingNotes[i].active = false;
+                                uint8_t note = mPlayingNotes[i].shiftedNote;
+                                uint8_t midiData[] = { event.status, note, event.data2 };
+                                mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
                             }
                         }
                     } break;
@@ -237,46 +236,45 @@ public:
         }
         
         // MIDI
-        AURenderEvent const *nextEvent = realtimeEventListHead;
-        
-        while(nextEvent != NULL) {
-            switch (nextEvent->head.eventType) {
-                case AURenderEventMIDI: {
-                    const AUMIDIEvent & event = nextEvent->MIDI;
-                    if (event.length == 3) {
-                        uint8_t status = event.data[0] & 0xF0;
-                        switch (status) {
-                            case 0x90: // note on
-                            {
-                                uint8_t note = event.data[1];
-                                uint8_t velocity = event.data[2];
-                                printf("midi event NOTE ON %d %d\n", note, velocity);
-                                if (velocity > 0) {
-                                    heldNotes.pressNote(note);
-                                } else {
-                                    heldNotes.releaseNote(note);
-                                }
-                                heldNote = heldNotes.firstPressedNote();
-                            } break;
-                            case 0x80: // note off
-                            {
-                                uint8_t note = event.data[1];
-                                uint8_t velocity = event.data[2];
-                                printf("midi event NOTE OFF %d %d\n", note, velocity);
-                                heldNotes.releaseNote(note);
-                                heldNote = heldNotes.firstPressedNote();
-                            } break;
-                        }
-                    }
-                } break;
-                case AURenderEventMIDIEventList:
-                    printf("midi event list\n");
-                    break;
-                default:
-                    break;
-            }
-            nextEvent = nextEvent->head.next;
-        }
+//        AURenderEvent const *nextEvent = realtimeEventListHead;
+//        while(nextEvent != NULL) {
+//            switch (nextEvent->head.eventType) {
+//                case AURenderEventMIDI: {
+//                    const AUMIDIEvent & event = nextEvent->MIDI;
+//                    if (event.length == 3) {
+//                        uint8_t status = event.data[0] & 0xF0;
+//                        switch (status) {
+//                            case 0x90: // note on
+//                            {
+//                                uint8_t note = event.data[1];
+//                                uint8_t velocity = event.data[2];
+//                                printf("midi event NOTE ON %d %d\n", note, velocity);
+//                                if (velocity > 0) {
+//                                    heldNotes.pressNote(note);
+//                                } else {
+//                                    heldNotes.releaseNote(note);
+//                                }
+//                                heldNote = heldNotes.firstPressedNote();
+//                            } break;
+//                            case 0x80: // note off
+//                            {
+//                                uint8_t note = event.data[1];
+//                                uint8_t velocity = event.data[2];
+//                                printf("midi event NOTE OFF %d %d\n", note, velocity);
+//                                heldNotes.releaseNote(note);
+//                                heldNote = heldNotes.firstPressedNote();
+//                            } break;
+//                        }
+//                    }
+//                } break;
+//                case AURenderEventMIDIEventList:
+//                    printf("midi event list\n");
+//                    break;
+//                default:
+//                    break;
+//            }
+//            nextEvent = nextEvent->head.next;
+//        }
         return noErr;
     }
     
@@ -284,8 +282,12 @@ public:
         return mPlayheadPosition;
     }
     
-    void setHeldNote(int16_t note) {
-        heldNote = note;
+    void pressNote(uint8_t note) {
+        heldNotes.pressNote(note);
+    }
+    
+    void releaseNote(uint8_t note) {
+        heldNotes.releaseNote(note);
     }
     
     void setRepeating(bool value) {
@@ -297,7 +299,6 @@ private:
     AUHostTransportStateBlock mTransportStateBlock;
     
     KeyboardState heldNotes;
-    int16_t heldNote = -1;
     bool mRepeating = false;
     
     bool mInternalClock = true;

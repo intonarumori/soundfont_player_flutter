@@ -17,6 +17,13 @@ struct ChordEvent {
     let duration: Double
 }
 
+struct RhythmEvent {
+    let note: UInt8
+    let velocity: UInt8
+    let timestamp: Double
+    let duration: Double
+}
+
 class SoundfontAudioPlayer {
     private var audioEngine: AVAudioEngine
     private var sampler: AVAudioUnitSampler
@@ -31,6 +38,8 @@ class SoundfontAudioPlayer {
     private var midiIn = MidiSource()
     
     var chords: [ChordEvent] = []
+    
+    var rhythm: [RhythmEvent] = []
     
     init() {
         audioEngine = AVAudioEngine()
@@ -191,7 +200,7 @@ class SoundfontAudioPlayer {
 
     func play(note: UInt8, velocity: UInt8) {
         if (repeating) {
-            sequencerUnit?.setHeldNote(Int16(note));
+            sequencerUnit?.pressNote(note);
         } else {
             sampler.startNote(note, withVelocity: velocity, onChannel: 0)
         }
@@ -199,10 +208,20 @@ class SoundfontAudioPlayer {
 
     func stop(note: UInt8) {
         if (repeating) {
-            sequencerUnit?.setHeldNote(-1);
+            sequencerUnit?.releaseNote(note);
         } else {
             sampler.stopNote(note, onChannel: 0)
         }
+    }
+    
+    func addRhythmEvent(_ event: RhythmEvent) {
+        sequencerUnit?.add(MIDIEvent(timestamp: event.timestamp, status: 0x90, data1: event.note, data2: event.velocity));
+        sequencerUnit?.add(MIDIEvent(timestamp: event.timestamp + event.duration, status: 0x80, data1: event.note, data2: 0));
+    }
+    
+    func removeRhythmEvent(_ event: RhythmEvent) {
+        sequencerUnit?.delete(MIDIEvent(timestamp: event.timestamp, status: 0x90, data1: event.note, data2: event.velocity));
+        sequencerUnit?.delete(MIDIEvent(timestamp: event.timestamp + event.duration, status: 0x80, data1: event.note, data2: 0));
     }
     
     func addChord(_ chord: ChordEvent) {

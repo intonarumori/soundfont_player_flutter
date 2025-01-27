@@ -4,9 +4,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:soundfont_player/chord_event.dart';
 import 'package:soundfont_player/soundfont_player.dart';
-import 'package:soundfont_player_example/chord_sequencer.dart';
+import 'package:soundfont_player_example/grid_buttons.dart';
+import 'package:soundfont_player_example/rhythm_sequencer.dart';
 import 'package:soundfont_player_example/sliding_button.dart';
 
 class MainPage extends StatefulWidget {
@@ -24,19 +24,75 @@ class _MyAppState extends State<MainPage> {
   Timer? _timer;
   int _playingNote = -1;
 
-  List<ChordItem> chords = List.generate(
-    8,
-    (index) => ChordItem(
-      enabled: false,
-      chord: ChordEvent(
-        root: 48,
-        notes: [0, 3, 7, 10, 14],
-        velocity: 100,
-        timestamp: index.toDouble() + ((index % 2 == 1) ? 0.5 : 0.0),
-        duration: 0.1,
-      ),
-    ),
-  ).toList();
+  final List<List<int>> _chords = [
+    [60, 63, 67, 70],
+    [60, 64, 67, 71],
+    [60, 63, 67, 70].map((e) => e - 3).toList(),
+    [60, 64, 67, 71].map((e) => e - 3).toList(),
+    [60, 63, 67, 70].map((e) => e - 5).toList(),
+    [60, 64, 67, 71].map((e) => e - 5).toList(),
+    [60, 63, 67, 70].map((e) => e - 6).toList(),
+    [60, 64, 67, 71].map((e) => e - 6).toList(),
+    [60, 63, 67, 70].map((e) => e - 8).toList(),
+    [60, 64, 67, 71].map((e) => e - 8).toList(),
+    [60, 63, 67, 70].map((e) => e - 10).toList(),
+    [60, 64, 67, 71].map((e) => e - 10).toList(),
+    [60, 63, 67, 70].map((e) => e - 11).toList(),
+    [60, 64, 67, 71].map((e) => e - 11).toList(),
+    [60, 63, 67, 70].map((e) => e - 13).toList(),
+    [60, 64, 67, 71].map((e) => e - 13).toList(),
+  ];
+
+  final List<int> _heldChords = [];
+
+  List<int> _heldNotes = [];
+
+  void _pressChord(int index) {
+    if (_heldChords.contains(index)) return;
+
+    _heldChords.add(index);
+    _updateHeldNotes();
+  }
+
+  void _updateHeldNotes() {
+    final notes = <int>{};
+    for (final chordIndex in _heldChords) {
+      notes.addAll(_chords[chordIndex]);
+    }
+
+    final removable = _heldNotes.toSet().difference(notes);
+    final addable = notes.difference(_heldNotes.toSet());
+
+    for (final note in removable) {
+      _soundfontPlayerPlugin.stopNote(note);
+    }
+    for (final note in addable) {
+      _soundfontPlayerPlugin.playNote(note, velocity: 127);
+    }
+
+    _heldNotes = notes.toList();
+  }
+
+  void _releaseChord(int index) {
+    if (!_heldChords.contains(index)) return;
+    _heldChords.remove(index);
+    _updateHeldNotes();
+  }
+
+  // List<ChordItem> chords = List.generate(
+  //   8,
+  //   (index) => ChordItem(
+  //     enabled: false,
+  //     chord: ChordEvent(
+  //       root: 48,
+  //       notes: [0, 3, 7, 10, 14],
+  //       velocity: 100,
+  //       timestamp: index.toDouble() + ((index % 2 == 1) ? 0.5 : 0.0),
+  //       duration: 0.1,
+  //     ),
+  //   ),
+  // ).toList();
+
   final _soundfontPlayerPlugin = SoundfontPlayer();
 
   @override
@@ -108,17 +164,17 @@ class _MyAppState extends State<MainPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SlidingButton(
-              tapStarted: (value) {
-                _updatePlaying(40 + (value * 20).toInt());
-              },
-              tapUpdated: (value) {
-                _updatePlaying(40 + (value * 20).toInt());
-              },
-              tapEnded: (value) {
-                _updatePlaying(-1);
-              },
-            ),
+            // SlidingButton(
+            //   tapStarted: (value) {
+            //     _updatePlaying(40 + (value * 20).toInt());
+            //   },
+            //   tapUpdated: (value) {
+            //     _updatePlaying(40 + (value * 20).toInt());
+            //   },
+            //   tapEnded: (value) {
+            //     _updatePlaying(-1);
+            //   },
+            // ),
             // GestureDetector(
             //   onTapDown: (details) => _soundfontPlayerPlugin.playNote(60, velocity: 127),
             //   onTapUp: (details) => _soundfontPlayerPlugin.stopNote(60),
@@ -132,42 +188,56 @@ class _MyAppState extends State<MainPage> {
                     _soundfontPlayerPlugin.setRepeating(_isRepeating);
                   });
                 },
-                child: Text(_isRepeating ? 'Repeat' : 'No Repeat')),
+              child: Text(_isRepeating ? 'Repeat' : 'No Repeat'),
+            ),
+            const SizedBox(width: 10),
+            FilledButton(
+              onPressed: () async {
+                _isPlaying = await _soundfontPlayerPlugin.isPlaying();
+                if (_isPlaying) {
+                  _soundfontPlayerPlugin.stopSequencer();
+                } else {
+                  _soundfontPlayerPlugin.startSequencer();
+                }
+                _isPlaying = await _soundfontPlayerPlugin.isPlaying();
+                setState(() {});
+              },
+              child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow),
+            ),
           ],
         ),
-        FilledButton(
-            onPressed: () async {
-              _isPlaying = await _soundfontPlayerPlugin.isPlaying();
-              if (_isPlaying) {
-                _soundfontPlayerPlugin.stopSequencer();
-              } else {
-                _soundfontPlayerPlugin.startSequencer();
-              }
-              _isPlaying = await _soundfontPlayerPlugin.isPlaying();
-              setState(() {});
-            },
-            child: Icon(_isPlaying ? Icons.pause : Icons.play_arrow)),
-        LinearProgressIndicator(value: (_playheadPosition % 8) / 8),
+        const SizedBox(height: 10),
+        LinearProgressIndicator(value: (_playheadPosition % 4) / 4),
         const SizedBox(height: 10),
         SizedBox(
-          height: 200,
-          child: ChordSequencer(
-            chords: chords.toList(),
-            onChordsChanged: (chords) {
-              for (int i = 0; i < chords.length; i++) {
-                final oldChord = this.chords[i];
-                final newChord = chords[i];
-                if (oldChord == newChord) continue;
-                if (newChord.enabled) {
-                  _soundfontPlayerPlugin.addChord(newChord.chord);
-                } else {
-                  _soundfontPlayerPlugin.removeChord(newChord.chord);
-                }
-              }
-              setState(() {
-                this.chords = chords;
-              });
-            },
+          height: 50,
+          child: RhythmSequencer(player: _soundfontPlayerPlugin),
+        ),
+        // SizedBox(
+        //   height: 200,
+        //   child: ChordSequencer(
+        //     chords: chords.toList(),
+        //     onChordsChanged: (chords) {
+        //       for (int i = 0; i < chords.length; i++) {
+        //         final oldChord = this.chords[i];
+        //         final newChord = chords[i];
+        //         if (oldChord == newChord) continue;
+        //         if (newChord.enabled) {
+        //           _soundfontPlayerPlugin.addChord(newChord.chord);
+        //         } else {
+        //           _soundfontPlayerPlugin.removeChord(newChord.chord);
+        //         }
+        //       }
+        //       setState(() {
+        //         this.chords = chords;
+        //       });
+        //     },
+        //   ),
+        // ),
+        Expanded(
+          child: GridButtons(
+            onTapDown: (index) => _pressChord(index),
+            onTapUp: (index) => _releaseChord(index),
           ),
         ),
         Center(

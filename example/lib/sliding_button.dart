@@ -43,7 +43,7 @@ class _SlidingButtonState extends State<SlidingButton> {
       child: Container(
         color: Colors.blue,
         width: 200,
-        height: 100,
+        height: 50,
       ),
     );
   }

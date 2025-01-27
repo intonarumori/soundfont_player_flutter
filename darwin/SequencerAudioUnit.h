@@ -36,7 +36,8 @@ struct SequenceOperation {
 @interface SequencerAudioUnit : AUAudioUnit
 - (void)addEvent:(MIDIEvent)event;
 - (void)deleteEvent:(MIDIEvent)event;
-- (void)setHeldNote:(int16_t)note;
+- (void)pressNote:(uint8_t)note;
+- (void)releaseNote:(uint8_t)note;
 - (void)setRepeating:(BOOL)repeating;
 - (double)getPlayheadPosition;
 @end

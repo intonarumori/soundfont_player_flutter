@@ -118,9 +118,14 @@
     _kernel.deleteEvent(event);
 }
 
-- (void)setHeldNote:(int16_t)note
+- (void)pressNote:(uint8_t)note
 {
-    _kernel.setHeldNote(note);
+    _kernel.pressNote(note);
+}
+
+- (void)releaseNote:(uint8_t)note
+{
+    _kernel.releaseNote(note);
 }
 
 - (void)setRepeating:(BOOL)repeating

@@ -1,4 +1,5 @@
 import 'package:soundfont_player/chord_event.dart';
+import 'package:soundfont_player/rhythm_event.dart';
 
 import 'soundfont_player_platform_interface.dart';
 
@@ -45,5 +46,13 @@ class SoundfontPlayer {
 
   Future<void> removeChord(ChordEvent chord) {
     return SoundfontPlayerPlatform.instance.removeChord(chord);
+  }
+
+  Future<void> addRhythmEvent(RhythmEvent event) {
+    return SoundfontPlayerPlatform.instance.addRhythmEvent(event);
+  }
+
+  Future<void> removeRhythmEvent(RhythmEvent event) {
+    return SoundfontPlayerPlatform.instance.removeRhythmEvent(event);
   }
 }

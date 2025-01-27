@@ -44,12 +44,10 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin {
         let args = call.arguments as? [String: Any] ?? [:]
         let note = args["note"] as! Int
         let velocity = args["velocity"] as! Int
-        print("playNote \(note) \(velocity)")
         soundfontAudioPlayer.play(note: UInt8(note), velocity: UInt8(velocity))
     case "stopNote":
         let args = call.arguments as? [String: Any] ?? [:]
         let note = args["note"] as! Int
-        print("stopNote \(note)")
         soundfontAudioPlayer.stop(note: UInt8(note))
     case "loadFont":
         let args = call.arguments as? [String: Any] ?? [:]
@@ -84,7 +82,23 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin {
         soundfontAudioPlayer.removeChord(
             ChordEvent(root: root, notes:notes, velocity: velocity, timestamp: timestamp, duration: duration)
         )
-        
+    case "addRhythmEvent":
+        let args = call.arguments as? [String: Any] ?? [:]
+        let note = args["note"] as! Int
+        let duration = args["duration"] as! Double
+        let timestamp = args["timestamp"] as! Double
+        let velocity = args["velocity"] as! Int
+        soundfontAudioPlayer.addRhythmEvent(RhythmEvent(note: UInt8(note), velocity: UInt8(velocity), timestamp: timestamp, duration: duration))
+        break
+    case "removeRhythmEvent":
+        let args = call.arguments as? [String: Any] ?? [:]
+        let note = args["note"] as! Int
+        let duration = args["duration"] as! Double
+        let timestamp = args["timestamp"] as! Double
+        let velocity = args["velocity"] as! Int
+        soundfontAudioPlayer.removeRhythmEvent(RhythmEvent(note: UInt8(note), velocity: UInt8(velocity), timestamp: timestamp, duration: duration))
+        break
+
     case "getPlayheadPosition":
         result(soundfontAudioPlayer.playheadPosition)
     default:

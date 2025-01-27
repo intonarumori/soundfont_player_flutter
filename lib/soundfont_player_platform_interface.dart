@@ -1,5 +1,6 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 import 'package:soundfont_player/chord_event.dart';
+import 'package:soundfont_player/rhythm_event.dart';
 
 import 'soundfont_player_method_channel.dart';
 
@@ -66,5 +67,13 @@ abstract class SoundfontPlayerPlatform extends PlatformInterface {
 
   Future<void> removeChord(ChordEvent chord) {
     throw UnimplementedError('removeChord() has not been implemented.');
+  }
+
+  Future<void> addRhythmEvent(RhythmEvent event) {
+    throw UnimplementedError('addRhythmEvent() has not been implemented.');
+  }
+
+  Future<void> removeRhythmEvent(RhythmEvent event) {
+    throw UnimplementedError('removeRhythmEvent() has not been implemented.');
   }
 }

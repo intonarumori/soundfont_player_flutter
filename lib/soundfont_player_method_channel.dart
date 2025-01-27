@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:soundfont_player/chord_event.dart';
+import 'package:soundfont_player/rhythm_event.dart';
 
 import 'soundfont_player_platform_interface.dart';
 
@@ -73,5 +74,15 @@ class MethodChannelSoundfontPlayer extends SoundfontPlayerPlatform {
   @override
   Future<void> removeChord(ChordEvent chord) async {
     await methodChannel.invokeMethod<String>('removeChord', chord.asMap());
+  }
+
+  @override
+  Future<void> addRhythmEvent(RhythmEvent event) async {
+    await methodChannel.invokeMethod<void>('addRhythmEvent', event.asMap());
+  }
+
+  @override
+  Future<void> removeRhythmEvent(RhythmEvent event) async {
+    await methodChannel.invokeMethod<void>('removeRhythmEvent', event.asMap());
   }
 }
