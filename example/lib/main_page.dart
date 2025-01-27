@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:soundfont_player/chord_event.dart';
 import 'package:soundfont_player/soundfont_player.dart';
 import 'package:soundfont_player_example/chord_sequencer.dart';
+import 'package:soundfont_player_example/sliding_button.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -21,6 +22,7 @@ class _MyAppState extends State<MainPage> {
   bool _isPlaying = false;
   double _playheadPosition = 0.0;
   Timer? _timer;
+  int _playingNote = -1;
 
   List<ChordItem> chords = List.generate(
     8,
@@ -89,6 +91,16 @@ class _MyAppState extends State<MainPage> {
     });
   }
 
+  void _updatePlaying(int note) {
+    if (_playingNote == note) return;
+    if (note != -1) {
+      _soundfontPlayerPlugin.playNote(note, velocity: 127);
+    } else {
+      _soundfontPlayerPlugin.stopNote(_playingNote);
+    }
+    _playingNote = note;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -96,17 +108,23 @@ class _MyAppState extends State<MainPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            GestureDetector(
-              onTapDown: (details) => _soundfontPlayerPlugin.playNote(60, velocity: 127),
-              onTapUp: (details) => _soundfontPlayerPlugin.stopNote(60),
-              onTapCancel: () => _soundfontPlayerPlugin.stopNote(60),
-              child: Container(
-                width: 50,
-                height: 50,
-                color: Colors.red,
-                child: Center(child: Text('hold')),
-              ),
+            SlidingButton(
+              tapStarted: (value) {
+                _updatePlaying(40 + (value * 20).toInt());
+              },
+              tapUpdated: (value) {
+                _updatePlaying(40 + (value * 20).toInt());
+              },
+              tapEnded: (value) {
+                _updatePlaying(-1);
+              },
             ),
+            // GestureDetector(
+            //   onTapDown: (details) => _soundfontPlayerPlugin.playNote(60, velocity: 127),
+            //   onTapUp: (details) => _soundfontPlayerPlugin.stopNote(60),
+            //   onTapCancel: () => _soundfontPlayerPlugin.stopNote(60),
+            //   child:
+            // ),
             FilledButton(
                 onPressed: () {
                   setState(() {

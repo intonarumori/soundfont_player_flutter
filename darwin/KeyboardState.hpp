@@ -11,6 +11,8 @@
 
 #define NOTES_COUNT (128)
 
+#ifdef __cplusplus
+
 class KeyboardState {
 public:
     bool isNoteHeld(uint8_t note) {
@@ -37,3 +39,5 @@ public:
 private:
     uint8_t mHeldNotes[NOTES_COUNT];
 };
+
+#endif

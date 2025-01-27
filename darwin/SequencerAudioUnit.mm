@@ -118,6 +118,20 @@
     _kernel.deleteEvent(event);
 }
 
+- (void)setHeldNote:(int16_t)note
+{
+    _kernel.setHeldNote(note);
+}
+
+- (void)setRepeating:(BOOL)repeating
+{
+    _kernel.setRepeating(repeating);
+}
+
+- (double)getPlayheadPosition {
+    return _kernel.getPlayheadPosition();
+}
+
 #pragma mark - MIDI
 
 - (NSArray<NSString *>*) MIDIOutputNames {
