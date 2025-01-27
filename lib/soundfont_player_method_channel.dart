@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:soundfont_player/chord_event.dart';
 
 import 'soundfont_player_platform_interface.dart';
 
@@ -35,5 +36,42 @@ class MethodChannelSoundfontPlayer extends SoundfontPlayerPlatform {
     await methodChannel.invokeMethod<String>('loadFont', <String, dynamic>{
       'path': fontPath,
     });
+  }
+
+  @override
+  Future<void> startSequencer() async {
+    await methodChannel.invokeMethod<String>('startSequencer');
+  }
+
+  @override
+  Future<void> stopSequencer() async {
+    await methodChannel.invokeMethod<String>('stopSequencer');
+  }
+
+  @override
+  Future<bool> isPlaying() async {
+    final result = await methodChannel.invokeMethod<bool>('getIsPlaying');
+    return result ?? false;
+  }
+
+  @override
+  Future<void> setRepeating(bool value) async {
+    await methodChannel.invokeMethod<void>('setRepeating', value);
+  }
+
+  @override
+  Future<double> getPlayheadPosition() async {
+    final result = await methodChannel.invokeMethod<double>('getPlayheadPosition');
+    return result ?? 0.0;
+  }
+
+  @override
+  Future<void> addChord(ChordEvent chord) async {
+    await methodChannel.invokeMethod<String>('addChord', chord.asMap());
+  }
+
+  @override
+  Future<void> removeChord(ChordEvent chord) async {
+    await methodChannel.invokeMethod<String>('removeChord', chord.asMap());
   }
 }

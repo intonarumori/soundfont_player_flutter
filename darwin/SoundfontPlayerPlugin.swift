@@ -55,6 +55,38 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin {
         let args = call.arguments as? [String: Any] ?? [:]
         let path = args["path"] as! String
         soundfontAudioPlayer.loadSoundfont(path: path)
+    case "startSequencer":
+        soundfontAudioPlayer.startSequencer()
+    case "stopSequencer":
+        soundfontAudioPlayer.stopSequencer()
+    case "getIsPlaying":
+        result(soundfontAudioPlayer.isPlaying)
+    case "setRepeating":
+        soundfontAudioPlayer.setRepeating(call.arguments as! Bool)
+        break
+    case "addChord":
+        let args = call.arguments as? [String: Any] ?? [:]
+        let notes = args["notes"] as! [Int]
+        let root = args["root"] as! Int
+        let duration = args["duration"] as! Double
+        let timestamp = args["timestamp"] as! Double
+        let velocity = args["velocity"] as! Int
+        soundfontAudioPlayer.addChord(
+            ChordEvent(root: root, notes:notes, velocity: velocity, timestamp: timestamp, duration: duration)
+        )
+    case "removeChord":
+        let args = call.arguments as? [String: Any] ?? [:]
+        let notes = args["notes"] as! [Int]
+        let root = args["root"] as! Int
+        let duration = args["duration"] as! Double
+        let timestamp = args["timestamp"] as! Double
+        let velocity = args["velocity"] as! Int
+        soundfontAudioPlayer.removeChord(
+            ChordEvent(root: root, notes:notes, velocity: velocity, timestamp: timestamp, duration: duration)
+        )
+        
+    case "getPlayheadPosition":
+        result(soundfontAudioPlayer.playheadPosition)
     default:
       result(FlutterMethodNotImplemented)
     }

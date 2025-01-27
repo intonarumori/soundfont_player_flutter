@@ -1,3 +1,5 @@
+import 'package:soundfont_player/chord_event.dart';
+
 import 'soundfont_player_platform_interface.dart';
 
 class SoundfontPlayer {
@@ -15,5 +17,33 @@ class SoundfontPlayer {
 
   Future<void> loadFont(String fontPath) {
     return SoundfontPlayerPlatform.instance.loadFont(fontPath);
+  }
+
+  Future<void> startSequencer() {
+    return SoundfontPlayerPlatform.instance.startSequencer();
+  }
+
+  Future<void> stopSequencer() {
+    return SoundfontPlayerPlatform.instance.stopSequencer();
+  }
+
+  Future<bool> isPlaying() {
+    return SoundfontPlayerPlatform.instance.isPlaying();
+  }
+
+  Future<void> setRepeating(bool value) {
+    return SoundfontPlayerPlatform.instance.setRepeating(value);
+  }
+
+  Future<double> getPlayheadPosition() {
+    return SoundfontPlayerPlatform.instance.getPlayheadPosition();
+  }
+
+  Future<void> addChord(ChordEvent chord) {
+    return SoundfontPlayerPlatform.instance.addChord(chord);
+  }
+
+  Future<void> removeChord(ChordEvent chord) {
+    return SoundfontPlayerPlatform.instance.removeChord(chord);
   }
 }

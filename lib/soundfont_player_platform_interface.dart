@@ -1,4 +1,5 @@
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:soundfont_player/chord_event.dart';
 
 import 'soundfont_player_method_channel.dart';
 
@@ -37,5 +38,33 @@ abstract class SoundfontPlayerPlatform extends PlatformInterface {
 
   Future<void> loadFont(String fontPath) {
     throw UnimplementedError('loadFont() has not been implemented.');
+  }
+
+  Future<void> startSequencer() {
+    throw UnimplementedError('startSequencer() has not been implemented.');
+  }
+
+  Future<void> stopSequencer() {
+    throw UnimplementedError('stopSequencer() has not been implemented.');
+  }
+
+  Future<bool> isPlaying() {
+    throw UnimplementedError('isPlaying() has not been implemented.');
+  }
+
+  Future<void> setRepeating(bool value) {
+    throw UnimplementedError('setRepeating() has not been implemented.');
+  }
+
+  Future<double> getPlayheadPosition() {
+    throw UnimplementedError('getPlayheadPosition() has not been implemented.');
+  }
+
+  Future<void> addChord(ChordEvent chord) {
+    throw UnimplementedError('addChord() has not been implemented.');
+  }
+
+  Future<void> removeChord(ChordEvent chord) {
+    throw UnimplementedError('removeChord() has not been implemented.');
   }
 }
