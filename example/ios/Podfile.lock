@@ -28,8 +28,8 @@ SPEC CHECKSUMS:
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   integration_test: 252f60fa39af5e17c3aa9899d35d908a0721b573
   path_provider_foundation: 2b6b4c569c0fb62ec74538f866245ac84301af46
-  soundfont_player: 3081de9f346bb25d6ff33e14529384ab8914ec3e
+  soundfont_player: de4d6e24afe68a24948e6b1d63554f07d9a7b0e7
 
 PODFILE CHECKSUM: 4c438addb11b6da45ed7ae408823d68256222460
 
-COCOAPODS: 1.15.2
+COCOAPODS: 1.16.2
