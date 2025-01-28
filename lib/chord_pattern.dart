@@ -28,6 +28,12 @@ class ChordPattern {
       'steps': steps.map((step) => step.asMap()).toList(),
     };
   }
+
+  factory ChordPattern.fromMap(Map<String, dynamic> map) {
+    return ChordPattern(
+      steps: (map['steps'] as List).map((step) => ChordPatternStep.fromMap(step)).toList(),
+    );
+  }
 }
 
 class ChordPatternStep {
@@ -43,6 +49,12 @@ class ChordPatternStep {
     return {
       'notes': notes.map((note) => note.asMap()).toList(),
     };
+  }
+
+  factory ChordPatternStep.fromMap(Map<String, dynamic> map) {
+    return ChordPatternStep(
+      notes: (map['notes'] as List).map<ChordPatternStepNote>((note) => note.fromMap(map)).toList(),
+    );
   }
 }
 
@@ -66,5 +78,12 @@ class ChordPatternStepNote {
       'note': note,
       'type': type.index,
     };
+  }
+
+  factory ChordPatternStepNote.fromMap(Map<String, dynamic> map) {
+    return ChordPatternStepNote(
+      note: map['note'],
+      type: ChordPatternStepNoteType.values[map['type']],
+    );
   }
 }
