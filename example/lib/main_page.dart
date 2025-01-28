@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:soundfont_player/chord_pattern.dart';
 import 'package:soundfont_player/soundfont_player.dart';
 import 'package:soundfont_player_example/grid_buttons.dart';
 import 'package:soundfont_player_example/rhythm_sequencer.dart';
-import 'package:soundfont_player_example/sliding_button.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -183,11 +183,17 @@ class _MyAppState extends State<MainPage> {
             // ),
             FilledButton(
                 onPressed: () {
-                  setState(() {
-                    _isRepeating = !_isRepeating;
-                    _soundfontPlayerPlugin.setRepeating(_isRepeating);
-                  });
-                },
+                _soundfontPlayerPlugin.setChordPattern(ChordPattern.arp());
+              },
+              child: Text('Set pattern'),
+            ),
+            FilledButton(
+              onPressed: () {
+                setState(() {
+                  _isRepeating = !_isRepeating;
+                  _soundfontPlayerPlugin.setRepeating(_isRepeating);
+                });
+              },
               child: Text(_isRepeating ? 'Repeat' : 'No Repeat'),
             ),
             const SizedBox(width: 10),

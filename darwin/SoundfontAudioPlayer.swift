@@ -24,6 +24,54 @@ struct RhythmEvent {
     let duration: Double
 }
 
+@objc class ChordPattern: NSObject {
+    let steps: [ChordPatternStep]
+    
+    init(steps: [ChordPatternStep]) {
+        self.steps = steps
+    }
+    
+    static func fromMap(_ map: [String: Any]) -> ChordPattern {
+        let list = map["steps"] as! [[String: Any]]
+        return ChordPattern(
+            steps: list.map({ ChordPatternStep.fromMap($0) })
+        )
+    }
+}
+
+@objc class ChordPatternStep: NSObject {
+    let notes: [ChordPatternStepNote]
+
+    init(notes: [ChordPatternStepNote]) {
+        self.notes = notes
+    }
+    
+    static func fromMap(_ map: [String: Any]) -> ChordPatternStep {
+        return ChordPatternStep(
+            notes: (map["notes"] as! [[String: Any]]).map({ ChordPatternStepNote.fromMap($0) })
+        )
+    }
+}
+
+@objc class ChordPatternStepNote: NSObject {
+    let type: Int
+    let note: Int
+    
+    init(type: Int, note: Int) {
+        self.type = type
+        self.note = note
+    }
+    
+    static func fromMap(_ map: [String: Any]) -> ChordPatternStepNote {
+        return ChordPatternStepNote(
+            type: map["type"] as! Int,
+            note: map["note"] as! Int
+        )
+    }
+}
+
+// MARK: -
+
 class SoundfontAudioPlayer {
     private var audioEngine: AVAudioEngine
     private var sampler: AVAudioUnitSampler
@@ -40,6 +88,8 @@ class SoundfontAudioPlayer {
     var chords: [ChordEvent] = []
     
     var rhythm: [RhythmEvent] = []
+    
+    var pattern: ChordPattern = ChordPattern(steps: [])
     
     init() {
         audioEngine = AVAudioEngine()
@@ -264,6 +314,23 @@ class SoundfontAudioPlayer {
 //            if #available(iOS 16.0, *) {
 //                track.clearEvents(in: AVBeatRange(start: chord.timestamp, length: chord.duration))
 //            }
+        }
+    }
+    
+    func setChordPattern(_ pattern: ChordPattern) {
+        self.pattern = pattern
+        
+        for i in 0..<16 {
+            for j in 0..<8 {
+                if (i < pattern.steps.count && j < pattern.steps[i].notes.count) {
+                    let note = pattern.steps[i].notes[j].note;
+                    let type = pattern.steps[i].notes[j].type;
+                    sequencerUnit?.setChordPatternNote(Int32(note), type: Int32(type), step: Int32(i), note: Int32(j))
+                } else {
+                    sequencerUnit?.setChordPatternNote(0, type: 0, step: Int32(i), note: Int32(j))
+                }
+                
+            }
         }
     }
 }

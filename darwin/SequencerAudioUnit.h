@@ -26,6 +26,22 @@ typedef struct MIDISequence {
     struct MIDIEvent events[MAX_EVENT_COUNT];
 } MIDISequence;
 
+typedef struct InternalChordPatternNote {
+    int note;
+    int type;
+} InternalChordPatternNote;
+
+typedef struct InternalChordPatternStep {
+    InternalChordPatternNote notes[8];
+} InternalChordPatternStep;
+
+typedef struct InternalChordPattern {
+    InternalChordPatternStep steps[16];
+    int length;
+} InternalChordPattern;
+
+// MARK: -
+
 enum SequenceOperationType { Add, Delete };
 
 struct SequenceOperation {
@@ -40,4 +56,5 @@ struct SequenceOperation {
 - (void)releaseNote:(uint8_t)note;
 - (void)setRepeating:(BOOL)repeating;
 - (double)getPlayheadPosition;
+- (void)setChordPatternNote:(int)note type:(int)type stepIndex:(int)stepIndex noteIndex:(int)noteIndex;
 @end

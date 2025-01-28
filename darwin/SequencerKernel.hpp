@@ -84,6 +84,30 @@ public:
         TPCircularBufferProduceBytes(&fifoBuffer, head, sizeof(SequenceOperation));
     }
     
+    double getPlayheadPosition() const {
+        return mPlayheadPosition;
+    }
+    
+    void pressNote(uint8_t note) {
+        heldNotes.pressNote(note);
+    }
+    
+    void releaseNote(uint8_t note) {
+        heldNotes.releaseNote(note);
+    }
+    
+    void setRepeating(bool value) {
+        mRepeating = value;
+    }
+    
+    
+    void setChordNote(int note, int type, int stepIndex, int noteIndex) {
+        mPattern.steps[stepIndex].notes[noteIndex].note = note;
+        mPattern.steps[stepIndex].notes[noteIndex].type = type;
+    }
+    
+    // MARK: -
+    
     void setMusicalContextBlock(AUHostMusicalContextBlock contextBlock) {
         mMusicalContextBlock = contextBlock;
     }
@@ -278,21 +302,6 @@ public:
         return noErr;
     }
     
-    double getPlayheadPosition() const {
-        return mPlayheadPosition;
-    }
-    
-    void pressNote(uint8_t note) {
-        heldNotes.pressNote(note);
-    }
-    
-    void releaseNote(uint8_t note) {
-        heldNotes.releaseNote(note);
-    }
-    
-    void setRepeating(bool value) {
-        mRepeating = value;
-    }
 private:
     AUHostMusicalContextBlock mMusicalContextBlock;
     AUMIDIOutputEventBlock mMIDIOutputEventBlock;
@@ -300,6 +309,8 @@ private:
     
     KeyboardState heldNotes;
     bool mRepeating = false;
+    
+    InternalChordPattern mPattern;
     
     bool mInternalClock = true;
     uint32_t totalFrameCount = 0;

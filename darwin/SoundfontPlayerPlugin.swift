@@ -98,6 +98,12 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin {
         let velocity = args["velocity"] as! Int
         soundfontAudioPlayer.removeRhythmEvent(RhythmEvent(note: UInt8(note), velocity: UInt8(velocity), timestamp: timestamp, duration: duration))
         break
+        
+    case "setChordPattern":
+        let args = call.arguments as? [String: Any] ?? [:]
+        let pattern = ChordPattern.fromMap(args)
+        soundfontAudioPlayer.setChordPattern(pattern)
+        break
 
     case "getPlayheadPosition":
         result(soundfontAudioPlayer.playheadPosition)

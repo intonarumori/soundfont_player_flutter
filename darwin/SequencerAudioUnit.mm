@@ -137,6 +137,12 @@
     return _kernel.getPlayheadPosition();
 }
 
+- (void)setChordPatternNote:(int)note type:(int)type stepIndex:(int)stepIndex noteIndex:(int)noteIndex
+{
+    _kernel.setChordNote(note, type, stepIndex, noteIndex);
+}
+
+
 #pragma mark - MIDI
 
 - (NSArray<NSString *>*) MIDIOutputNames {
