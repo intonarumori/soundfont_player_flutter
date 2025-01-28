@@ -129,16 +129,16 @@ public:
                                         AURenderPullInputBlock __unsafe_unretained pullInputBlock) {
         
         // TEST MIDI
-//        mPlayheadPosition += 0.05;
-//        if (mPlayheadPosition > 2.0) {
-//            
-//            uint8_t cable = 0;
-//            uint8_t midiData[] = { 0x90, 60, 100 };
-//            mMIDIOutputEventBlock(AUEventSampleTimeImmediate, cable, sizeof(midiData), midiData);
-//            
-//            mPlayheadPosition = 0.0;
-//        }
-//        return noErr;
+        //        mPlayheadPosition += 0.05;
+        //        if (mPlayheadPosition > 2.0) {
+        //
+        //            uint8_t cable = 0;
+        //            uint8_t midiData[] = { 0x90, 60, 100 };
+        //            mMIDIOutputEventBlock(AUEventSampleTimeImmediate, cable, sizeof(midiData), midiData);
+        //
+        //            mPlayheadPosition = 0.0;
+        //        }
+        //        return noErr;
         
         // move MIDI events from FIFO buffer to internal sequencer buffer
         uint32_t bytes = -1;
@@ -147,8 +147,7 @@ public:
             if (op) {
                 switch (op->type) {
                     case Add: {
-                        sequence.events[sequence.eventCount] = op->event;
-                        sequence.eventCount++;
+                        MIDISequenceAddEvent(&sequence, &op->event);
                         TPCircularBufferConsume(&fifoBuffer, sizeof(SequenceOperation));
                         break;
                     }
@@ -167,10 +166,10 @@ public:
                 }
             }
         }
-
+        
         double tempo = 120.0;
         double beatPosition = 0.0;
-
+        
         if (mInternalClock) {
             beatPosition = totalFrameCount / (mSampleRate * 60.0 / tempo);
             totalFrameCount += frameCount;
@@ -180,7 +179,7 @@ public:
         }
         
         mPlayheadPosition = fmod(beatPosition, sequence.length);
-
+        
         bool transportMoving = false;
         
         if (mInternalClock) {
@@ -197,64 +196,171 @@ public:
         // the length of the sequencer loop in musical time (8.0 == 8 quarter notes)
         double lengthInSamples = sequence.length / tempo * 60. * mSampleRate;
         double beatPositionInSamples = beatPosition / tempo * 60. * mSampleRate;
-
+        
         // the sample time at the start of the buffer, as given by the render block,
         // ...modulo the length of the sequencer loop
         double bufferStartTime = fmod(beatPositionInSamples, lengthInSamples);
         double bufferEndTime = bufferStartTime + frameCount;
-
-        for (int i = 0; i < sequence.eventCount; i++) {
-            // get the event timestamp, given in musical time (e.g., 1.25)
-            MIDIEvent event = sequence.events[i];
-            // convert the timestamp to sample time (e.g, 55125)
-            double eventTime = event.timestamp / tempo * 60. * mSampleRate;
-            
-            bool eventIsInCurrentBuffer = eventTime >= bufferStartTime && eventTime < bufferEndTime;
-            // there is a loop transition in the current buffer
-            bool loopsAround = bufferEndTime > lengthInSamples && eventTime < fmod(bufferEndTime, lengthInSamples);
-            
-            // check if the event should occur within the current buffer OR there is a loop transition
-            if (eventIsInCurrentBuffer || loopsAround) {
-                // the difference between the sample time of the event
-                // and the beginning of the buffer gives us the offset, in samples
-                double offset = eventTime - bufferStartTime;
+        
+        //printf("Buffer %f %f\n", bufferStartTime, bufferEndTime);
+        
+        // Using the `mChordPattern` as the basis of repeats
+        if (true)
+        {
+            // Enumerate the pattern steps
+            for (int i = 0; i < 16; i++) {
                 
-                if (loopsAround) {
-                    // in case of a loop transitition, add the remaining frames of the current buffer to the offset
-                    double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
-                    offset = eventTime + remainingFramesInBuffer;
-                }
-               
-                // pass events to the MIDI output block provided by the host
-                AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
-                switch (event.status) {
-                    case 0x90: {
-                        // Only output notes if we are holding something
-                        for (uint8_t note = 0; note < 128; note++) {
-                            if (heldNotes.isNoteHeld(note)) {
-                                for (int i = 0; i < 16; i++) {
-                                    if (!mPlayingNotes[i].active) {
-                                        mPlayingNotes[i].active = true;
-                                        mPlayingNotes[i].eventNote = note;
-                                        mPlayingNotes[i].shiftedNote = note;
-                                        uint8_t midiData[] = { event.status, note, event.data2 };
-                                        mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
-                                        break;
+                // Start of the step
+                {
+                    double eventTime = lengthInSamples / 16 * i;
+                    
+                    bool eventIsInCurrentBuffer = eventTime >= bufferStartTime && eventTime < bufferEndTime;
+                    bool loopsAround = bufferEndTime > lengthInSamples && eventTime < fmod(bufferEndTime, lengthInSamples);
+                    
+                    if (eventIsInCurrentBuffer || loopsAround) {
+                        // we should sound the event
+                        double offset = eventTime - bufferStartTime;
+                        
+                        if (loopsAround) {
+                            // in case of a loop transitition, add the remaining frames of the current buffer to the offset
+                            double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
+                            offset = eventTime + remainingFramesInBuffer;
+                        }
+                        
+                        AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
+
+                        InternalChordPatternStep & step = mPattern.steps[i];
+                        
+                        for (int k = 0; k < 8; k++) {
+                            InternalChordPatternNote & note = step.notes[k];
+                            if (note.type > 3) continue;
+
+                            if (note.type == 0) {
+                                // play note
+                                int noteIndexInChord = note.note;
+                                
+                                int currentNoteIndex = 0;
+                                int playingNote = -1;
+                                for (uint8_t note = 0; note < 128; note++) {
+                                    if (heldNotes.isNoteHeld(note)) {
+                                        if (currentNoteIndex == noteIndexInChord) {
+                                            playingNote = note;
+                                            break;
+                                        }
+                                        currentNoteIndex++;
+                                    }
+                                }
+                                
+                                if (playingNote > -1) {
+                                    // play it
+                                    // Find a slot in the playing notes
+                                    for (int i = 0; i < 16; i++) {
+                                        if (!mPlayingNotes[i].active) {
+                                            mPlayingNotes[i].active = true;
+                                            mPlayingNotes[i].eventNote = playingNote;
+                                            mPlayingNotes[i].shiftedNote = playingNote;
+                                            uint8_t midiData[] = { 0x90, (uint8_t)playingNote, 100 };
+                                            mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
+                                            
+                                            printf("Triggering note: %d (%llu) %f\n", playingNote, sampleTime, eventTime);
+                                            break;
+                                        }
                                     }
                                 }
                             }
                         }
-                    } break;
-                    case 0x80: {
+                    }
+                }
+                
+                // End of the step
+                {
+                    double eventTime = (lengthInSamples / 16) * i + 4000;
+                    
+                    bool eventIsInCurrentBuffer = eventTime >= bufferStartTime && eventTime < bufferEndTime;
+                    bool loopsAround = bufferEndTime > lengthInSamples && eventTime < fmod(bufferEndTime, lengthInSamples);
+                    
+                    if (eventIsInCurrentBuffer || loopsAround) {
+                        // we should sound the event
+                        double offset = eventTime - bufferStartTime;
+                        
+                        if (loopsAround) {
+                            // in case of a loop transitition, add the remaining frames of the current buffer to the offset
+                            double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
+                            offset = eventTime + remainingFramesInBuffer;
+                        }
+                        
+                        AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
+                        
                         for (int i = 0; i < 16; i++) {
                             if (mPlayingNotes[i].active) {
                                 mPlayingNotes[i].active = false;
                                 uint8_t note = mPlayingNotes[i].shiftedNote;
-                                uint8_t midiData[] = { event.status, note, event.data2 };
+                                uint8_t midiData[] = { 0x80, note, 0 };
                                 mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
+                                printf("Clearing note: %d (%llu) %f\n", note, sampleTime, eventTime);
                             }
                         }
-                    } break;
+                    }
+                }
+            }
+        }
+        
+        // Using the `sequence` as the basis of repeats
+        if (false)
+        {
+            for (int i = 0; i < sequence.eventCount; i++) {
+                // get the event timestamp, given in musical time (e.g., 1.25)
+                MIDIEvent event = sequence.events[i];
+                // convert the timestamp to sample time (e.g, 55125)
+                double eventTime = event.timestamp / tempo * 60. * mSampleRate;
+                
+                bool eventIsInCurrentBuffer = eventTime >= bufferStartTime && eventTime < bufferEndTime;
+                // there is a loop transition in the current buffer
+                bool loopsAround = bufferEndTime > lengthInSamples && eventTime < fmod(bufferEndTime, lengthInSamples);
+                
+                // check if the event should occur within the current buffer OR there is a loop transition
+                if (eventIsInCurrentBuffer || loopsAround) {
+                    // the difference between the sample time of the event
+                    // and the beginning of the buffer gives us the offset, in samples
+                    double offset = eventTime - bufferStartTime;
+                    
+                    if (loopsAround) {
+                        // in case of a loop transitition, add the remaining frames of the current buffer to the offset
+                        double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
+                        offset = eventTime + remainingFramesInBuffer;
+                    }
+                   
+                    // pass events to the MIDI output block provided by the host
+                    AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
+                    switch (event.status) {
+                        case 0x90: {
+                            // Only output notes if we are holding something
+                            for (uint8_t note = 0; note < 128; note++) {
+                                if (heldNotes.isNoteHeld(note)) {
+                                    for (int i = 0; i < 16; i++) {
+                                        if (!mPlayingNotes[i].active) {
+                                            mPlayingNotes[i].active = true;
+                                            mPlayingNotes[i].eventNote = note;
+                                            mPlayingNotes[i].shiftedNote = note;
+                                            uint8_t midiData[] = { event.status, note, event.data2 };
+                                            mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        } break;
+                        case 0x80: {
+                            for (int i = 0; i < 16; i++) {
+                                if (mPlayingNotes[i].active) {
+                                    mPlayingNotes[i].active = false;
+                                    uint8_t note = mPlayingNotes[i].shiftedNote;
+                                    uint8_t midiData[] = { event.status, note, event.data2 };
+                                    mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
+                                }
+                            }
+                        } break;
+                    }
                 }
             }
         }

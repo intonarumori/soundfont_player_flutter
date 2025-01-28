@@ -182,8 +182,54 @@ class _MyAppState extends State<MainPage> {
             //   child:
             // ),
             FilledButton(
-                onPressed: () {
-                _soundfontPlayerPlugin.setChordPattern(ChordPattern.arp());
+              onPressed: () {
+                final pattern = ChordPattern(steps: [
+                  ChordPatternStep(notes: [
+                    ChordPatternStepNote(note: 0, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 1, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 2, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 3, type: ChordPatternStepNoteType.normal),
+                  ]),
+                  ChordPatternStep(notes: [
+                    ChordPatternStepNote(note: 0, type: ChordPatternStepNoteType.normal),
+                  ]),
+                  ChordPatternStep(notes: [
+                    ChordPatternStepNote(note: 1, type: ChordPatternStepNoteType.normal),
+                  ]),
+                  ChordPatternStep(notes: [
+                    ChordPatternStepNote(note: 2, type: ChordPatternStepNoteType.normal),
+                  ]),
+                  ChordPatternStep(notes: []),
+                  ChordPatternStep(notes: []),
+                  ChordPatternStep(notes: [
+                    ChordPatternStepNote(note: 0, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 1, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 2, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 3, type: ChordPatternStepNoteType.normal),
+                  ]),
+                  ChordPatternStep(notes: []),
+                  ChordPatternStep(notes: []),
+                  ChordPatternStep(notes: [
+                    ChordPatternStepNote(note: 0, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 1, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 2, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 3, type: ChordPatternStepNoteType.normal),
+                  ]),
+                  ChordPatternStep(notes: []),
+                  ChordPatternStep(notes: [
+                    ChordPatternStepNote(note: 0, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 2, type: ChordPatternStepNoteType.normal),
+                  ]),
+                  ChordPatternStep(notes: [
+                    ChordPatternStepNote(note: 1, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 3, type: ChordPatternStepNoteType.normal),
+                  ]),
+                  ChordPatternStep(notes: [
+                    ChordPatternStepNote(note: 0, type: ChordPatternStepNoteType.normal),
+                    ChordPatternStepNote(note: 2, type: ChordPatternStepNoteType.normal),
+                  ]),
+                ]);
+                _soundfontPlayerPlugin.setChordPattern(pattern);
               },
               child: Text('Set pattern'),
             ),

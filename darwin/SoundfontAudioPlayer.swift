@@ -327,7 +327,7 @@ class SoundfontAudioPlayer {
                     let type = pattern.steps[i].notes[j].type;
                     sequencerUnit?.setChordPatternNote(Int32(note), type: Int32(type), step: Int32(i), note: Int32(j))
                 } else {
-                    sequencerUnit?.setChordPatternNote(0, type: 0, step: Int32(i), note: Int32(j))
+                    sequencerUnit?.setChordPatternNote(0, type: 127, step: Int32(i), note: Int32(j))
                 }
                 
             }

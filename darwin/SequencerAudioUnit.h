@@ -26,6 +26,15 @@ typedef struct MIDISequence {
     struct MIDIEvent events[MAX_EVENT_COUNT];
 } MIDISequence;
 
+void MIDISequenceAddEvent(MIDISequence * sequence, MIDIEvent * event) {
+    sequence->events[sequence->eventCount] = *event;
+    sequence->eventCount++;
+}
+
+void MIDISequenceRemove(double timestamp) {
+    
+}
+
 typedef struct InternalChordPatternNote {
     int note;
     int type;
