@@ -74,17 +74,18 @@ struct RhythmEvent {
 
 class SoundfontAudioPlayer {
     private var audioEngine: AVAudioEngine
-    private var sampler: AVAudioUnitSampler
-    private var sequencer: AVAudioSequencer
-    private var musicSequencer: AppleSequencer!
-    private var realTimeSequencer: RealTimeSequencer!
+    //private var matrixMixer: AVAudioUnit?
     
-    private var repeating: Bool = false
-    
-    private var midiNode: AVAudioUnit?
+    private var keyboardSequencer: AVAudioUnit?
+    private var keyboardSampler: AVAudioUnitSampler
+
+    private var drumSequencer: AVAudioSequencer
+    private var drumSampler: AVAudioUnitSampler
 
     private var midiIn = MidiSource()
-    
+
+    private var repeating: Bool = false
+
     var chords: [ChordEvent] = []
     
     var rhythm: [RhythmEvent] = []
@@ -93,37 +94,67 @@ class SoundfontAudioPlayer {
     
     init() {
         audioEngine = AVAudioEngine()
-        sampler = AVAudioUnitSampler()
-        audioEngine.attach(sampler)
-        audioEngine.connect(sampler, to: audioEngine.mainMixerNode, format: nil)
+        
+        keyboardSampler = AVAudioUnitSampler()
+        audioEngine.attach(keyboardSampler)
+        audioEngine.connect(keyboardSampler, to: audioEngine.mainMixerNode, format: nil)
+        
+        keyboardSampler.volume = 0.5
+
+        drumSampler = AVAudioUnitSampler()
+        audioEngine.attach(drumSampler)
+        audioEngine.connect(drumSampler, to: audioEngine.mainMixerNode, format: nil)
 
         let newTempo: Double = 120.0
         let rate: Double = newTempo / 60.0
         
-        sequencer = AVAudioSequencer(audioEngine: audioEngine)
+        drumSequencer = AVAudioSequencer(audioEngine: audioEngine)
         if #available(iOS 16.0, macOS 13.0, *) {
-            let track = sequencer.createAndAppendTrack()
+            let track = drumSequencer.createAndAppendTrack()
             track.lengthInBeats = 8
             track.isLoopingEnabled = true
             track.numberOfLoops = -1
+            track.destinationAudioUnit = drumSampler
+            
+            // Define a basic drum beat (kick and snare)
+           let beats: [(MIDINoteNumber, MusicTimeStamp)] = [
+               (36, 0.0),
+               (36, 2.0),
+               (36, 4.0),
+               (36, 6.0),
+               // sd
+               (37, 2.0),
+               (37, 6.0),
+               // HH
+               (39, 0.0),
+               (39, 1.0),
+               (39, 2.0),
+               (39, 3.0),
+               (39, 4.0),
+               (39, 5.0),
+               (39, 6.0),
+               (40, 7.0),
+           ]
+           
+           for (note, time) in beats {
+               let duration: MusicTimeStamp = 0.2
+               let velocity: MIDIVelocity = 100
+               track.addEvent(AVMIDINoteEvent(channel: 0, key: UInt32(note), velocity: UInt32(velocity), duration: duration), at: time)
+           }
         }
-        sequencer.rate = Float(rate)
-        sequencer.prepareToPlay()
-        
-        musicSequencer = AppleSequencer()
-        musicSequencer.newTrack("Track 1")
-        musicSequencer.setLength(Duration(beats: 8))
-        musicSequencer.enableLooping()
-        musicSequencer.setGlobalMIDIOutput(midiIn.endpoint)
-        musicSequencer.setRate(rate)
-        //musicSequencer.tracks[0].add(midiNoteData: MIDINoteData(noteNumber: 48, velocity: 100, channel: 0, duration: Duration(beats: 0.5), position: Duration(beats: 0.0)))
-        
-//        realTimeSequencer = RealTimeSequencer()
-//        realTimeSequencer.addToEngine(audioEngine)
-//        realTimeSequencer.noteBlock = sampler.auAudioUnit.scheduleMIDIEventBlock
-        
+        drumSequencer.rate = Float(rate)
+        drumSequencer.prepareToPlay()
         //
+
+        instantiateSequencer()
+        // instantiateMatrixMixer()
         
+        startEngineIfReady()
+                
+        midiIn.callback = self.handleEvent
+    }
+    
+    private func instantiateSequencer() {
         let myUnitType = kAudioUnitType_MIDIProcessor
         let mySubType : OSType = 1
         
@@ -134,64 +165,104 @@ class SoundfontAudioPlayer {
             componentFlags:        AudioComponentFlags.sandboxSafe.rawValue,
             componentFlagsMask:    0
         )
-    
+
         AUAudioUnit.registerSubclass(
             SequencerAudioUnit.self,
             as: compDesc,
             name: "Sequencer",   // my AUAudioUnit subclass
             version:   1
         )
-               
-               
+
         AVAudioUnit.instantiate(
             with: compDesc,
-            options: .init(rawValue: 0)) { (audiounit: AVAudioUnit?, error: Error?) in
+            options: .init(rawValue: 0)) { [weak self] (audiounit: AVAudioUnit?, error: Error?) in
+                guard let self else { return }
                 
-                self.audioEngine.attach(audiounit!)
+                audioEngine.attach(audiounit!)
                 
-                self.midiNode = audiounit!
+                keyboardSequencer = audiounit!
                 
 //                audiounit?.auAudioUnit.musicalContextBlock = { [weak self] _, _, _, _, _, _ in
 //                    return false
 //                }
-//                
 //                audiounit?.auAudioUnit.midiOutputEventBlock = { [weak self] _, _, _, _ in
 //                    return noErr
 //                }
 //                audiounit?.auAudioUnit.transportStateBlock = { [weak self] _, _, _, _ in
 //                    return false
 //                }
-
-                //let outFormat = self.sampler.inputFormat(forBus: 0)
-                
-                self.audioEngine.connectMIDI(audiounit!, to: self.sampler, format: nil, block: { _, _, _, _ in
+                audioEngine.connectMIDI(audiounit!, to: self.keyboardSampler, format: nil, block: { _, _, _, _ in
                     return noErr
                 })
-
-//                self.audioEngine.connect(
-//                    audiounit!,
-//                    to: self.sampler,
-//                    format: nil
-//                )
-            }
                 
+                startEngineIfReady()
+            }
+    }
+    
+    private func startEngineIfReady() {
+        guard let keyboardSequencer else {
+            return
+        }
         do {
             try audioEngine.start()
         } catch {
-            print("Error starting audio engine: \(error.localizedDescription)")
+            print("could not start engine")
         }
-        
-        midiIn.callback = self.handleEvent
     }
+    
+    
+//    private func instantiateMatrixMixer() {
+//        
+//        let kAudioComponentFlag_SandboxSafe:UInt32 = 2
+//        let mixerDesc = AudioComponentDescription(
+//            componentType: kAudioUnitType_Mixer,
+//            componentSubType: kAudioUnitSubType_MatrixMixer,
+//            componentManufacturer: kAudioUnitManufacturer_Apple,
+//            componentFlags: kAudioComponentFlag_SandboxSafe,
+//            componentFlagsMask: 0
+//        )
+//        AVAudioUnit.instantiate(with: mixerDesc) { [weak self] avAudioUnit, error in
+//            guard let self, let avAudioUnit else {
+//                return
+//            }
+//            
+//            self.matrixMixer = avAudioUnit
+//            
+//            audioEngine.attach(avAudioUnit)
+//            
+//            AudioUnitSetParameter(matrixMixer!.audioUnit, kMatrixMixerParam_Volume, kAudioUnitScope_Global, 0xFFFFFFFF, 1.0, 0);
+//
+//            audioEngine.connect(keyboardSampler, to: avAudioUnit, format: nil)
+//            audioEngine.connect(drumSampler, to: avAudioUnit, format: nil)
+//
+//            audioEngine.connect(avAudioUnit, to: audioEngine.mainMixerNode, format: nil)
+//            
+//            startEngineIfReady()
+//            
+//            AudioUnitSetParameter(matrixMixer!.audioUnit, kMatrixMixerParam_Volume, kAudioUnitScope_Global, 0xFFFFFFFF, 1.0, 0);
+//            AudioUnitSetParameter(matrixMixer!.audioUnit, kMatrixMixerParam_Volume, kAudioUnitScope_Output, 0, 1.0, 0);
+//            AudioUnitSetParameter(matrixMixer!.audioUnit, kMatrixMixerParam_Volume, kAudioUnitScope_Output, 1, 1.0, 0);
+//            AudioUnitSetParameter(matrixMixer!.audioUnit, kMatrixMixerParam_Volume, kAudioUnitScope_Input, 0, 1.0, 0);
+//            AudioUnitSetParameter(matrixMixer!.audioUnit, kMatrixMixerParam_Volume, kAudioUnitScope_Input, 1, 1.0, 0);
+//            var i : UInt32 = 0
+//            var j : UInt32 = 0
+//            let crossPoint : UInt32  = (i << 16) | (j & 0x0000FFFF);
+//            AudioUnitSetParameter(matrixMixer!.audioUnit, kMatrixMixerParam_Volume, kAudioUnitScope_Global, crossPoint, 1.0, 0);
+//            i = 1
+//            j = 1
+//            let crossPoint2 : UInt32  = (i << 16) | (j & 0x0000FFFF);
+//            AudioUnitSetParameter(matrixMixer!.audioUnit, kMatrixMixerParam_Volume, kAudioUnitScope_Global, crossPoint2, 1.0, 0);
+//        }
+//    }
     
     func handleEvent(_ data: [UInt8]) {
         switch (data[0] & 0xF0) {
         case 0x90:
             if (data[2] > 0) {
-                sampler.startNote(data[1], withVelocity: data[2], onChannel: 0)
+                keyboardSampler.startNote(data[1], withVelocity: data[2], onChannel: 0)
             }
             else {
-                sampler.stopNote(data[1], onChannel: 0)
+                keyboardSampler.stopNote(data[1], onChannel: 0)
             }
             break
         case 0x80:
@@ -207,33 +278,41 @@ class SoundfontAudioPlayer {
         }
         let soundfontURL = URL(fileURLWithPath: path)
         do {
-            try sampler.loadSoundBankInstrument(at: soundfontURL, program: 0, bankMSB: 0x79, bankLSB: 0x00)
+            try keyboardSampler.loadSoundBankInstrument(at: soundfontURL, program: 0, bankMSB: 0x79, bankLSB: 0x00)
+        } catch {
+            print("Error loading soundfont: \(error.localizedDescription)")
+        }
+    }
+    
+    func loadDrumSoundfont(path: String) {
+        guard FileManager().fileExists(atPath: path) else {
+            return
+        }
+        let soundfontURL = URL(fileURLWithPath: path)
+        do {
+            try drumSampler.loadSoundBankInstrument(at: soundfontURL, program: 0, bankMSB: 0x78, bankLSB: 0x00)
         } catch {
             print("Error loading soundfont: \(error.localizedDescription)")
         }
     }
     
     func startSequencer() {
-        musicSequencer.play()
-//        do {
-//            try sequencer.start()
-//        } catch {
-//            print("Error starting the sequencer \(error.localizedDescription)")
-//        }
+        sequencerUnit?.setPlaying(true);
+        drumSequencer.currentPositionInBeats = 0.0
+        try! drumSequencer.start();
     }
     
     func stopSequencer() {
-        musicSequencer.stop()
-        //sequencer.stop()
+        sequencerUnit?.setPlaying(false);
+        drumSequencer.stop();
     }
     
     var sequencerUnit: SequencerAudioUnit? {
-        return (midiNode?.auAudioUnit as? SequencerAudioUnit)
+        return (keyboardSequencer?.auAudioUnit as? SequencerAudioUnit)
     }
     
     var isPlaying: Bool {
-        musicSequencer.isPlaying
-        //sequencer.isPlaying
+        sequencerUnit?.getPlaying() ?? false
     }
     
     func setRepeating(_ value: Bool) {
@@ -252,7 +331,7 @@ class SoundfontAudioPlayer {
         if (repeating) {
             sequencerUnit?.pressNote(note);
         } else {
-            sampler.startNote(note, withVelocity: velocity, onChannel: 0)
+            keyboardSampler.startNote(note, withVelocity: velocity, onChannel: 0)
         }
     }
 
@@ -260,7 +339,7 @@ class SoundfontAudioPlayer {
         if (repeating) {
             sequencerUnit?.releaseNote(note);
         } else {
-            sampler.stopNote(note, onChannel: 0)
+            keyboardSampler.stopNote(note, onChannel: 0)
         }
     }
     
@@ -278,14 +357,14 @@ class SoundfontAudioPlayer {
         removeChord(chord)
         chords.append(chord)
         
-        for note in chord.notes {
-            musicSequencer.tracks[0].add(
-                noteNumber: UInt8(chord.root + note),
-                velocity: UInt8(100),
-                position: Duration(beats: chord.timestamp),
-                duration: Duration(beats:chord.duration)
-            )
-        }
+//        for note in chord.notes {
+//            musicSequencer.tracks[0].add(
+//                noteNumber: UInt8(chord.root + note),
+//                velocity: UInt8(100),
+//                position: Duration(beats: chord.timestamp),
+//                duration: Duration(beats:chord.duration)
+//            )
+//        }
         
 //        if #available(iOS 16.0, *) {
 //            let track = sequencer.tracks[0]
@@ -308,7 +387,7 @@ class SoundfontAudioPlayer {
         if let foundChord {
             chords.remove(at: foundChord)
             
-            musicSequencer.tracks[0].clearRange(start: Duration(beats:chord.timestamp), duration: Duration(beats: chord.duration))
+            //musicSequencer.tracks[0].clearRange(start: Duration(beats:chord.timestamp), duration: Duration(beats: chord.duration))
             
 //            let track = sequencer.tracks[0]
 //            if #available(iOS 16.0, *) {

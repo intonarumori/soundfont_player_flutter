@@ -142,6 +142,15 @@
     _kernel.setChordNote(note, type, stepIndex, noteIndex);
 }
 
+- (void)setPlaying:(BOOL)playing
+{
+    return _kernel.setPlaying(playing);
+}
+
+- (BOOL)getPlaying
+{
+    return _kernel.isPlaying();
+}
 
 #pragma mark - MIDI
 

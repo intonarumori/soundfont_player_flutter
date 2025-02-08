@@ -101,6 +101,8 @@ class _MyAppState extends State<MainPage> {
     initPlatformState();
 
     loadFont();
+    loadDrums();
+    
     _startTimer();
   }
 
@@ -128,6 +130,16 @@ class _MyAppState extends State<MainPage> {
     final file = File(path)..writeAsBytesSync(font.buffer.asUint8List());
 
     await _soundfontPlayerPlugin.loadFont(file.path);
+  }
+
+  Future<void> loadDrums() async {
+    final filename = "r70-808.sf2";
+    final font = await rootBundle.load('assets/$filename');
+    final documents = await getApplicationDocumentsDirectory();
+    final path = '${documents.path}/$filename';
+    final file = File(path)..writeAsBytesSync(font.buffer.asUint8List());
+
+    await _soundfontPlayerPlugin.loadDrums(file.path);
   }
 
   // Platform messages are asynchronous, so we initialize in an async method.

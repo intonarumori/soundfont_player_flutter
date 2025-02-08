@@ -28,34 +28,7 @@ public:
         // initialize FIFO buffer
         TPCircularBufferInit(&fifoBuffer, BUFFER_LENGTH);
        
-        // initialize sequence
         sequence = {};
-
-        // chord mem
-//        double rhythm[] = {
-//            0.0, 0.5, 0.75,
-//            1.0, 1.75,
-//            2.0, 2.5,
-//            3.25, 3.75,
-//        };
-//        
-//        uint8_t notes[] = { 0 };
-//        for (int i = 0; i < sizeof(rhythm) / sizeof(double); i++) {
-//            
-//            for (int j = 0; j < sizeof(notes); j++) {
-//                addEvent({rhythm[i], 0x90, notes[j], 100});
-//                addEvent({rhythm[i] + 0.1, 0x80, notes[j], 0});
-//            }
-//        }
-
-        // ARP
-//        uint8_t notes[] = {0,3,7,10};
-//        for (int i = 0; i < 16; i++) {
-//            uint8_t note = notes[i % sizeof(notes)];
-//            addEvent({i * 0.25, 0x90, note, 100});
-//            addEvent({i * 0.25 + 0.1, 0x80, note, 0});
-//        }
-
         sequence.eventCount = 0;
         sequence.length = 4;
         
@@ -100,6 +73,14 @@ public:
         mRepeating = value;
     }
     
+    void setPlaying(bool value) {
+        mPlaying = value;
+        totalFrameCount = 0;
+    }
+    
+    bool isPlaying() const {
+        return mPlaying;
+    }
     
     void setChordNote(int note, int type, int stepIndex, int noteIndex) {
         mPattern.steps[stepIndex].notes[noteIndex].note = note;
@@ -167,6 +148,8 @@ public:
             }
         }
         
+        if (!mPlaying) return noErr;
+        
         double tempo = 120.0;
         double beatPosition = 0.0;
         
@@ -203,7 +186,17 @@ public:
         double bufferEndTime = bufferStartTime + frameCount;
         
         //printf("Buffer %f %f\n", bufferStartTime, bufferEndTime);
-        
+
+        // Clear any notes that might have been released
+        for (int i = 0; i < 16; i++) {
+            if (mPlayingNotes[i].active && !heldNotes.isNoteHeld(mPlayingNotes[i].eventNote)) {
+                mPlayingNotes[i].active = false;
+                uint8_t note = mPlayingNotes[i].shiftedNote;
+                uint8_t midiData[] = { 0x80, note, 0 };
+                mMIDIOutputEventBlock(AUEventSampleTimeImmediate, 0, sizeof(midiData), midiData);
+            }
+        }
+
         // Using the `mChordPattern` as the basis of repeats
         if (true)
         {
@@ -217,25 +210,27 @@ public:
                     bool eventIsInCurrentBuffer = eventTime >= bufferStartTime && eventTime < bufferEndTime;
                     bool loopsAround = bufferEndTime > lengthInSamples && eventTime < fmod(bufferEndTime, lengthInSamples);
                     
-                    if (eventIsInCurrentBuffer || loopsAround) {
-                        // we should sound the event
-                        double offset = eventTime - bufferStartTime;
-                        
-                        if (loopsAround) {
-                            // in case of a loop transitition, add the remaining frames of the current buffer to the offset
-                            double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
-                            offset = eventTime + remainingFramesInBuffer;
-                        }
-                        
-                        AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
+                    if (!(eventIsInCurrentBuffer || loopsAround)) continue;
+                    
+                    // we should sound the event
+                    double offset = eventTime - bufferStartTime;
+                    
+                    if (loopsAround) {
+                        // in case of a loop transitition, add the remaining frames of the current buffer to the offset
+                        double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
+                        offset = eventTime + remainingFramesInBuffer;
+                    }
+                    
+                    AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
 
-                        InternalChordPatternStep & step = mPattern.steps[i];
+                    InternalChordPatternStep & step = mPattern.steps[i];
+                    
+                    for (int k = 0; k < 8; k++) {
+                        InternalChordPatternNote & note = step.notes[k];
+                        if (note.type > 3) continue;
                         
-                        for (int k = 0; k < 8; k++) {
-                            InternalChordPatternNote & note = step.notes[k];
-                            if (note.type > 3) continue;
-
-                            if (note.type == 0) {
+                        switch (note.type) {
+                            case 0: {
                                 // play note
                                 int noteIndexInChord = note.note;
                                 
@@ -262,12 +257,41 @@ public:
                                             uint8_t midiData[] = { 0x90, (uint8_t)playingNote, 100 };
                                             mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
                                             
-                                            printf("Triggering note: %d (%llu) %f\n", playingNote, sampleTime, eventTime);
+                                            //printf("Triggering note: %d (%llu) %f\n", playingNote, sampleTime, eventTime);
                                             break;
                                         }
                                     }
                                 }
-                            }
+
+                            } break;
+                                
+                            case 2: {
+                                // kill
+                                int noteIndexInChord = note.note;
+                                
+                                int currentNoteIndex = 0;
+                                int playingNote = -1;
+                                for (uint8_t note = 0; note < 128; note++) {
+                                    if (heldNotes.isNoteHeld(note)) {
+                                        if (currentNoteIndex == noteIndexInChord) {
+                                            playingNote = note;
+                                            break;
+                                        }
+                                        currentNoteIndex++;
+                                    }
+                                }
+                                if (playingNote > -1) {
+                                    for (int i = 0; i < 16; i++) {
+                                        if (mPlayingNotes[i].active && mPlayingNotes[i].eventNote == playingNote) {
+                                            mPlayingNotes[i].active = false;
+                                            uint8_t note = mPlayingNotes[i].shiftedNote;
+                                            uint8_t midiData[] = { 0x80, note, 0 };
+                                            mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
+                                            //printf("Clearing note: %d (%llu) %f\n", note, sampleTime, eventTime);
+                                        }
+                                    }
+                                }
+                            } break;
                         }
                     }
                 }
@@ -291,15 +315,7 @@ public:
                         
                         AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
                         
-                        for (int i = 0; i < 16; i++) {
-                            if (mPlayingNotes[i].active) {
-                                mPlayingNotes[i].active = false;
-                                uint8_t note = mPlayingNotes[i].shiftedNote;
-                                uint8_t midiData[] = { 0x80, note, 0 };
-                                mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
-                                printf("Clearing note: %d (%llu) %f\n", note, sampleTime, eventTime);
-                            }
-                        }
+
                     }
                 }
             }
@@ -419,6 +435,7 @@ private:
     InternalChordPattern mPattern;
     
     bool mInternalClock = true;
+    bool mPlaying = false;
     uint32_t totalFrameCount = 0;
     
     double mPlayheadPosition = 0.0;

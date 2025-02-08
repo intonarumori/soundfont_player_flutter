@@ -53,7 +53,9 @@ class ChordPatternStep {
 
   factory ChordPatternStep.fromMap(Map<String, dynamic> map) {
     return ChordPatternStep(
-      notes: (map['notes'] as List).map<ChordPatternStepNote>((note) => note.fromMap(map)).toList(),
+      notes: (map['notes'] as List)
+          .map<ChordPatternStepNote>((note) => ChordPatternStepNote.fromMap(note))
+          .toList(),
     );
   }
 }

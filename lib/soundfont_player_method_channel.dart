@@ -41,6 +41,13 @@ class MethodChannelSoundfontPlayer extends SoundfontPlayerPlatform {
   }
 
   @override
+  Future<void> loadDrums(String fontPath) async {
+    await methodChannel.invokeMethod<String>('loadDrums', <String, dynamic>{
+      'path': fontPath,
+    });
+  }
+
+  @override
   Future<void> startSequencer() async {
     await methodChannel.invokeMethod<String>('startSequencer');
   }

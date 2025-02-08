@@ -42,6 +42,10 @@ abstract class SoundfontPlayerPlatform extends PlatformInterface {
     throw UnimplementedError('loadFont() has not been implemented.');
   }
 
+  Future<void> loadDrums(String fontPath) async {
+    throw UnimplementedError('loadDrums() has not been implemented.');
+  }
+
   Future<void> startSequencer() {
     throw UnimplementedError('startSequencer() has not been implemented.');
   }

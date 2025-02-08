@@ -21,6 +21,10 @@ class SoundfontPlayer {
     return SoundfontPlayerPlatform.instance.loadFont(fontPath);
   }
 
+  Future<void> loadDrums(String fontPath) {
+    return SoundfontPlayerPlatform.instance.loadDrums(fontPath);
+  }
+
   Future<void> startSequencer() {
     return SoundfontPlayerPlatform.instance.startSequencer();
   }

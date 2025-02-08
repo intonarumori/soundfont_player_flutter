@@ -53,6 +53,10 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin {
         let args = call.arguments as? [String: Any] ?? [:]
         let path = args["path"] as! String
         soundfontAudioPlayer.loadSoundfont(path: path)
+    case "loadDrums":
+        let args = call.arguments as? [String: Any] ?? [:]
+        let path = args["path"] as! String
+        soundfontAudioPlayer.loadDrumSoundfont(path: path)
     case "startSequencer":
         soundfontAudioPlayer.startSequencer()
     case "stopSequencer":
