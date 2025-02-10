@@ -345,7 +345,7 @@ class SoundfontAudioPlayer {
     }
     
     var drumSequencerUnit: DrumSequencerAudioUnit? {
-        drumSequencer?.auAudioUnit as? DrumSequencerAudioUnit
+         drumSequencer?.auAudioUnit as? DrumSequencerAudioUnit
     }
     
     var isPlaying: Bool {

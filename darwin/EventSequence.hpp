@@ -16,7 +16,10 @@ typedef struct EventSequenceEvent {
 class EventSequence {
   
 public:
-    EventSequence() {}
+    EventSequence() {
+        length = 4;
+        eventCount = 0;
+    }
     ~EventSequence() {}
     
     void addEvent(EventSequenceEvent event) {
