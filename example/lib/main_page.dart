@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:soundfont_player/chord_pattern.dart';
+import 'package:soundfont_player/rhythm_event.dart';
 import 'package:soundfont_player/soundfont_player.dart';
 import 'package:soundfont_player_example/grid_buttons.dart';
 import 'package:soundfont_player_example/rhythm_sequencer.dart';
@@ -102,8 +104,11 @@ class _MyAppState extends State<MainPage> {
 
     loadFont();
     loadDrums();
-    
+
     _startTimer();
+    _soundfontPlayerPlugin.events.listen((event) {
+      print(event);
+    });
   }
 
   @override
@@ -193,6 +198,37 @@ class _MyAppState extends State<MainPage> {
             //   onTapCancel: () => _soundfontPlayerPlugin.stopNote(60),
             //   child:
             // ),
+
+            FilledButton(
+              onPressed: () {
+                _soundfontPlayerPlugin.setTempo(80.0 + Random().nextInt(40));
+              },
+              child: Text('Set Tempo'),
+            ),
+
+            FilledButton(
+              onPressed: () {
+                _soundfontPlayerPlugin.setDrumTrack(
+                  0,
+                  1,
+                  [
+                    RhythmEvent(note: 36, velocity: 100, timestamp: 0, duration: 0.2),
+                    RhythmEvent(note: 36, velocity: 100, timestamp: 1, duration: 0.2),
+                    RhythmEvent(note: 36, velocity: 100, timestamp: 2, duration: 0.2),
+                    RhythmEvent(note: 36, velocity: 100, timestamp: 3, duration: 0.2),
+                  ],
+                );
+              },
+              child: Text('Set drums'),
+            ),
+
+            FilledButton(
+              onPressed: () {
+                _soundfontPlayerPlugin.getDrumTrack(0, 0);
+              },
+              child: Text('Get drums'),
+            ),
+
             FilledButton(
               onPressed: () {
                 final pattern = ChordPattern(steps: [

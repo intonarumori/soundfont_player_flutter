@@ -5,6 +5,8 @@ import 'package:soundfont_player/rhythm_event.dart';
 import 'soundfont_player_platform_interface.dart';
 
 class SoundfontPlayer {
+  Stream<dynamic> get events => SoundfontPlayerPlatform.instance.events;
+
   Future<String?> getPlatformVersion() {
     return SoundfontPlayerPlatform.instance.getPlatformVersion();
   }
@@ -63,5 +65,17 @@ class SoundfontPlayer {
 
   Future<void> setChordPattern(ChordPattern pattern) {
     return SoundfontPlayerPlatform.instance.setChordPattern(pattern);
+  }
+
+  Future<void> setDrumTrack(int sequence, int track, List<RhythmEvent> events) {
+    return SoundfontPlayerPlatform.instance.setDrumTrack(sequence, track, events);
+  }
+
+  Future<List<RhythmEvent>> getDrumTrack(int sequence, int track) {
+    return SoundfontPlayerPlatform.instance.getDrumTrack(sequence, track);
+  }
+
+  Future<void> setTempo(double tempo) {
+    return SoundfontPlayerPlatform.instance.setTempo(tempo);
   }
 }

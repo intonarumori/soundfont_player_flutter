@@ -152,6 +152,12 @@
     return _kernel.isPlaying();
 }
 
+- (void)setTempo:(double)value
+{
+    _kernel.setTempo(value);
+}
+
+
 #pragma mark - MIDI
 
 - (NSArray<NSString *>*) MIDIOutputNames {

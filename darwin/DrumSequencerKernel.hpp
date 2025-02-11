@@ -24,25 +24,25 @@ public:
     DrumSequencerKernel() {
         TPCircularBufferInit(&fifoBuffer, BUFFER_LENGTH);
         
-        sequences[0].addEvent({0.0, 0x90, 36, 100, 0});
-        sequences[0].addEvent({0.3, 0x80, 36, 0, 0});
-        sequences[0].addEvent({0.75, 0x90, 36, 100, 1});
-        sequences[0].addEvent({0.9, 0x80, 36, 0, 1});
-        sequences[0].addEvent({2.0, 0x90, 36, 100, 2});
-        sequences[0].addEvent({2.3, 0x80, 36, 0, 2});
-        sequences[0].addEvent({2.75, 0x90, 36, 100, 3});
-        sequences[0].addEvent({2.9, 0x80, 36, 0, 3});
+        sequences[0].tracks[0].addEvent({0.0, 0x90, 36, 100, 0});
+        sequences[0].tracks[0].addEvent({0.3, 0x80, 36, 0, 0});
+        sequences[0].tracks[0].addEvent({0.75, 0x90, 36, 100, 1});
+        sequences[0].tracks[0].addEvent({0.9, 0x80, 36, 0, 1});
+        sequences[0].tracks[0].addEvent({2.0, 0x90, 36, 100, 2});
+        sequences[0].tracks[0].addEvent({2.3, 0x80, 36, 0, 2});
+        sequences[0].tracks[0].addEvent({2.75, 0x90, 36, 100, 3});
+        sequences[0].tracks[0].addEvent({2.9, 0x80, 36, 0, 3});
 
-        sequences[1].addEvent({1.0, 0x90, 37, 100, 0});
-        sequences[1].addEvent({1.3, 0x80, 37, 0, 0});
-        sequences[1].addEvent({3.0, 0x90, 37, 100, 1});
-        sequences[1].addEvent({3.3, 0x80, 37, 0, 1});
-        sequences[1].addEvent({3.75, 0x90, 37, 100, 1});
-        sequences[1].addEvent({3.9, 0x80, 37, 0, 1});
+        sequences[0].tracks[1].addEvent({1.0, 0x90, 37, 100, 0});
+        sequences[0].tracks[1].addEvent({1.3, 0x80, 37, 0, 0});
+        sequences[0].tracks[1].addEvent({3.0, 0x90, 37, 100, 1});
+        sequences[0].tracks[1].addEvent({3.3, 0x80, 37, 0, 1});
+        sequences[0].tracks[1].addEvent({3.75, 0x90, 37, 100, 1});
+        sequences[0].tracks[1].addEvent({3.9, 0x80, 37, 0, 1});
 
         for (int i = 0; i < 8; i++) {
-            sequences[2].addEvent({i * 0.5, 0x90, 39, 100, 0});
-            sequences[2].addEvent({i * 0.5 + 0.2, 0x80, 39, 0, 0});
+            sequences[0].tracks[2].addEvent({i * 0.5, 0x90, 39, 100, 0});
+            sequences[0].tracks[2].addEvent({i * 0.5 + 0.2, 0x80, 39, 0, 0});
         }
     }
     
@@ -61,6 +61,18 @@ public:
     
     bool isPlaying() const {
         return mPlaying;
+    }
+    
+    void setTrack(int sequenceIndex, int trackIndex, Track & track) {
+        sequences[sequenceIndex].tracks[trackIndex] = track;
+    }
+    
+    Track & getTrack(int sequenceIndex, int trackIndex) {
+        return sequences[sequenceIndex].tracks[trackIndex];
+    }
+    
+    void setTempo(const double value) {
+        mTempo = value;
     }
     
     // MARK: -
@@ -87,7 +99,7 @@ public:
 
         if (!mPlaying) return noErr;
         
-        double tempo = 120.0;
+        double tempo = mTempo;
         double beatPosition = 0.0;
         
         beatPosition = totalFrameCount / (mSampleRate * 60.0 / tempo);
@@ -114,11 +126,11 @@ public:
 
         // Using the `mChordPattern` as the basis of repeats
         
-        for (int sequenceIndex = 0; sequenceIndex < sequenceCount; sequenceIndex++) {
+        for (int trackIndex = 0; trackIndex < sequences[currentSequenceIndex].numberOfTracks; trackIndex++) {
 
-            for (int i = 0; i < sequences[sequenceIndex].eventCount; i++) {
+            for (int i = 0; i < sequences[currentSequenceIndex].tracks[trackIndex].eventCount; i++) {
                 
-                EventSequenceEvent * event = &sequences[sequenceIndex].events[i];
+                TrackEvent * event = &sequences[currentSequenceIndex].tracks[trackIndex].events[i];
                 double eventTime = (event->timestamp / sequenceLength) * lengthInSamples;
                 
                 bool eventIsInCurrentBuffer = eventTime >= bufferStartTime && eventTime < bufferEndTime;
@@ -153,9 +165,12 @@ private:
     uint32_t totalFrameCount = 0;
     
     double mPlayheadPosition = 0.0;
+    
+    double mTempo = 120.0;
 
-    static const int sequenceCount = 3;
-    EventSequence sequences[sequenceCount];
+    static const int numberOfSequences = 6;
+    int currentSequenceIndex = 0;
+    Sequence sequences[numberOfSequences];
     
     TPCircularBuffer fifoBuffer;
     

@@ -11,5 +11,8 @@
 @interface DrumSequencerAudioUnit : AUAudioUnit
 
 - (void)setPlaying:(BOOL)playing;
+- (void)setTrack:(NSDictionary *)data;
+- (NSDictionary *)getTrack:(NSInteger)sequenceIndex trackIndex:(NSInteger)trackIndex;
+- (void)setTempo:(double)value;
 
 @end

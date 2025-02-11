@@ -12,6 +12,11 @@ class MethodChannelSoundfontPlayer extends SoundfontPlayerPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('soundfont_player');
 
+  final eventChannel = EventChannel('soundfont_player_events');
+
+  @override
+  Stream<dynamic> get events => eventChannel.receiveBroadcastStream();
+
   @override
   Future<String?> getPlatformVersion() async {
     final version = await methodChannel.invokeMethod<String>('getPlatformVersion');
@@ -97,5 +102,32 @@ class MethodChannelSoundfontPlayer extends SoundfontPlayerPlatform {
   @override
   Future<void> setChordPattern(ChordPattern pattern) async {
     await methodChannel.invokeMethod<void>('setChordPattern', pattern.asMap());
+  }
+
+  @override
+  Future<void> setDrumTrack(int sequence, int track, List<RhythmEvent> events) async {
+    final map = {
+      "sequence": sequence,
+      "track": track,
+      "events": events.map((e) => e.asMap()).toList(),
+    };
+    await methodChannel.invokeMethod<void>('setDrumTrack', map);
+  }
+
+  @override
+  Future<List<RhythmEvent>> getDrumTrack(int sequence, int track) async {
+    final result = await methodChannel.invokeMethod<Map>('getDrumTrack', {
+      "sequence": sequence,
+      "track": track,
+    });
+    final dict = result!.cast<String, dynamic>();
+    final eventList = dict["events"] as List<dynamic>;
+    final events = eventList.map((e) => RhythmEvent.fromMap(e.cast<String, dynamic>())).toList();
+    return events;
+  }
+
+  @override
+  Future<void> setTempo(double tempo) async {
+    await methodChannel.invokeMethod<void>('setTempo', tempo);
   }
 }

@@ -18,6 +18,8 @@ abstract class SoundfontPlayerPlatform extends PlatformInterface {
   /// Defaults to [MethodChannelSoundfontPlayer].
   static SoundfontPlayerPlatform get instance => _instance;
 
+  Stream<dynamic> get events => throw UnimplementedError('events getter has not been implemented.');
+
   /// Platform-specific implementations should set this with their own
   /// platform-specific class that extends [SoundfontPlayerPlatform] when
   /// they register themselves.
@@ -84,5 +86,17 @@ abstract class SoundfontPlayerPlatform extends PlatformInterface {
 
   Future<void> setChordPattern(ChordPattern pattern) {
     throw UnimplementedError('setChordPattern() has not been implemented.');
+  }
+
+  Future<void> setDrumTrack(int sequence, int track, List<RhythmEvent> events) {
+    throw UnimplementedError('setDrumTrack() has not been implemented.');
+  }
+
+  Future<List<RhythmEvent>> getDrumTrack(int sequence, int track) {
+    throw UnimplementedError('getDrumTrack() has not been implemented.');
+  }
+
+  Future<void> setTempo(double tempo) {
+    throw UnimplementedError('setTempo() has not been implemented.');
   }
 }

@@ -182,7 +182,11 @@ class SoundfontAudioPlayer {
                 
                 audioEngine.attach(audiounit!)
                 drumSequencer = audiounit!
-                audioEngine.connectMIDI(audiounit!, to: self.drumSampler, format: nil, eventListBlock: nil)
+                if #available(iOS 16, macOS 13, *) {
+                    audioEngine.connectMIDI(audiounit!, to: self.drumSampler, format: nil, eventListBlock: nil)
+                } else {
+                    audioEngine.connectMIDI(audiounit!, to: self.drumSampler, format: nil)
+                }
                 startEngineIfReady()
             }
         )
@@ -226,8 +230,12 @@ class SoundfontAudioPlayer {
 //                audiounit?.auAudioUnit.transportStateBlock = { [weak self] _, _, _, _ in
 //                    return false
 //                }
-                audioEngine.connectMIDI(audiounit!, to: self.keyboardSampler, format: nil, eventListBlock: nil)
-                
+                if #available(iOS 16, macOS 13, *) {
+                    audioEngine.connectMIDI(audiounit!, to: self.keyboardSampler, format: nil, eventListBlock: nil)
+                } else {
+                    audioEngine.connectMIDI(audiounit!, to: self.keyboardSampler, format: nil)
+                }
+
                 startEngineIfReady()
             }
         )
@@ -328,6 +336,19 @@ class SoundfontAudioPlayer {
         } catch {
             print("Error loading soundfont: \(error.localizedDescription)")
         }
+    }
+    
+    func setTempo(_ value: Double) {
+        sequencerUnit?.setTempo(value)
+        drumSequencerUnit?.setTempo(value)
+    }
+    
+    func setDrumTrack(_ data: [String: Any]) {
+        drumSequencerUnit?.setTrack(data)
+    }
+    
+    func getDrumTrack(sequenceIndex: Int, trackIndex: Int) -> [AnyHashable: Any] {
+        return drumSequencerUnit!.getTrack(sequenceIndex, trackIndex: trackIndex)
     }
     
     func startSequencer() {

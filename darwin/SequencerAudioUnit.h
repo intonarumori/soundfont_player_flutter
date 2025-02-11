@@ -68,4 +68,6 @@ struct SequenceOperation {
 - (void)setPlaying:(BOOL)playing;
 - (BOOL)getPlaying;
 - (void)setChordPatternNote:(int)note type:(int)type stepIndex:(int)stepIndex noteIndex:(int)noteIndex;
+- (void)setTempo:(double)value;
+
 @end

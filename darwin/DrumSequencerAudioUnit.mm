@@ -101,10 +101,58 @@
     [super deallocateRenderResources];
 }
 
+#pragma mark - User code
 
 - (void)setPlaying:(BOOL)playing
 {
     _kernel.setPlaying(playing);
+}
+
+- (void)setTrack:(NSDictionary *)data
+{
+    Track track;
+    
+    int sequenceIndex = [[data objectForKey:@"sequence"] intValue];
+    int trackIndex = [[data objectForKey:@"track"] intValue];
+    NSArray* events = [data objectForKey:@"events"];
+    for (NSDictionary * event in events) {
+        double timestamp = [[event objectForKey:@"timestamp"] doubleValue];
+        double duration = [[event objectForKey:@"duration"] doubleValue];
+        int note = [[event objectForKey:@"note"] intValue];
+        int velocity = [[event objectForKey:@"velocity"] intValue];
+        track.addEvent({timestamp, 0x90, (uint8_t)note, (uint8_t)velocity, 0});
+        track.addEvent({timestamp + duration, 0x80, (uint8_t)note, (uint8_t)velocity, 0});
+    }
+    _kernel.setTrack(sequenceIndex, trackIndex, track);
+}
+
+- (NSDictionary *)getTrack:(NSInteger)sequenceIndex trackIndex:(NSInteger)trackIndex {
+    Track & track = _kernel.getTrack((int)sequenceIndex, (int)trackIndex);
+    NSMutableDictionary * dict = [NSMutableDictionary dictionary];
+    [dict setObject:[NSNumber numberWithInteger:sequenceIndex] forKey:@"sequence"];
+    [dict setObject:[NSNumber numberWithInteger:trackIndex] forKey:@"track"];
+    
+    NSMutableArray * array = [NSMutableArray array];
+    for (int i = 0; i < track.eventCount; i++) {
+        TrackEvent & event = track.events[i];
+        if (event.status == 0x90) {
+            // TODO: proper handling of duration
+            [array addObject:@{
+                @"timestamp": [NSNumber numberWithDouble:event.timestamp],
+                @"note": [NSNumber numberWithInt:event.data1],
+                @"velocity": [NSNumber numberWithInt:event.data2],
+                @"duration": [NSNumber numberWithDouble:0.1],
+            }];
+        }
+    }
+    [dict setObject:array forKey:@"events"];
+    
+    return dict;
+}
+
+- (void)setTempo:(double)value
+{
+    _kernel.setTempo(value);
 }
 
 #pragma mark - MIDI

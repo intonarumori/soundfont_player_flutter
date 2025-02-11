@@ -87,6 +87,10 @@ public:
         mPattern.steps[stepIndex].notes[noteIndex].type = type;
     }
     
+    void setTempo(const double value) {
+        mTempo = value;
+    }
+    
     // MARK: -
     
     void setMusicalContextBlock(AUHostMusicalContextBlock contextBlock) {
@@ -150,7 +154,7 @@ public:
         
         if (!mPlaying) return noErr;
         
-        double tempo = 120.0;
+        double tempo = mTempo;
         double beatPosition = 0.0;
         
         if (mInternalClock) {
@@ -437,6 +441,8 @@ private:
     bool mInternalClock = true;
     bool mPlaying = false;
     uint32_t totalFrameCount = 0;
+    
+    double mTempo = 120.0;
     
     double mPlayheadPosition = 0.0;
     

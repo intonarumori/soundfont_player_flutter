@@ -5,24 +5,33 @@
 
 #define MAX_EVENT_COUNT 128
 
-typedef struct EventSequenceEvent {
+
+typedef struct TrackEvent {
     double timestamp;
     uint8_t status;
     uint8_t data1;
     uint8_t data2;
-    uint8_t userData;
-} EventSequenceEvent;
+    uint32_t userData;
+} TrackEvent;
 
-class EventSequence {
-  
+class Track {
 public:
-    EventSequence() {
-        length = 4;
+    Track() {
         eventCount = 0;
     }
-    ~EventSequence() {}
+    ~Track() {}
+
+    Track& operator=(const Track& other) {
+        if (this == &other)  // Self-assignment check
+            return *this;
+        eventCount = other.eventCount;
+        for (int i = 0; i < eventCount; i++) {
+            events[i] = other.events[i];
+        }
+        return *this;
+    }
     
-    void addEvent(EventSequenceEvent event) {
+    void addEvent(TrackEvent event) {
         events[eventCount] = event;
         eventCount++;
     }
@@ -43,9 +52,20 @@ public:
         eventCount--;
     }
     
-    double length;
     int eventCount;
-    EventSequenceEvent events[MAX_EVENT_COUNT];
+    TrackEvent events[MAX_EVENT_COUNT];
+};
+
+class Sequence {
+public:
+    
+    void setTrack(int index, Track & track) {
+        tracks[index] = track;
+    }
+    
+    static const int numberOfTracks = 8;
+    Track tracks[numberOfTracks];
+    double length;
 };
 
 #endif
