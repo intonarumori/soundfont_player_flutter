@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -24,6 +25,8 @@ class _MyAppState extends State<MainPage> {
   bool _isPlaying = false;
   double _playheadPosition = 0.0;
   Timer? _timer;
+
+  int _currentSequenceIndex = 0;
 
   final List<List<int>> _chords = [
     [60, 63, 67, 70],
@@ -167,6 +170,23 @@ class _MyAppState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        CupertinoSegmentedControl(
+          children: {
+            0: Text("1"),
+            1: Text("2"),
+            2: Text("3"),
+            3: Text("4"),
+            4: Text("5"),
+            5: Text("6"),
+          },
+          groupValue: _currentSequenceIndex,
+          onValueChanged: (v) {
+            setState(() {
+              _currentSequenceIndex = v;
+              _soundfontPlayerPlugin.queueSequence(v);
+            });
+          },
+        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

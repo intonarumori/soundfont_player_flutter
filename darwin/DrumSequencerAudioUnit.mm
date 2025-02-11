@@ -155,6 +155,11 @@
     _kernel.setTempo(value);
 }
 
+- (void)queueSequence:(NSInteger)index
+{
+    _kernel.queueSequence(index);
+}
+
 #pragma mark - MIDI
 
 - (NSArray<NSString *>*) MIDIOutputNames {

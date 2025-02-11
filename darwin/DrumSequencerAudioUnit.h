@@ -14,5 +14,6 @@
 - (void)setTrack:(NSDictionary *)data;
 - (NSDictionary *)getTrack:(NSInteger)sequenceIndex trackIndex:(NSInteger)trackIndex;
 - (void)setTempo:(double)value;
+- (void)queueSequence:(NSInteger)index;
 
 @end

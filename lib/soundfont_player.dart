@@ -78,4 +78,8 @@ class SoundfontPlayer {
   Future<void> setTempo(double tempo) {
     return SoundfontPlayerPlatform.instance.setTempo(tempo);
   }
+
+  Future<void> queueSequence(int index) {
+    return SoundfontPlayerPlatform.instance.queueSequence(index);
+  }
 }

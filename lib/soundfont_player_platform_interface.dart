@@ -99,4 +99,8 @@ abstract class SoundfontPlayerPlatform extends PlatformInterface {
   Future<void> setTempo(double tempo) {
     throw UnimplementedError('setTempo() has not been implemented.');
   }
+
+  Future<void> queueSequence(int index) {
+    throw UnimplementedError('queueSequence() has not been implemented.');
+  }
 }

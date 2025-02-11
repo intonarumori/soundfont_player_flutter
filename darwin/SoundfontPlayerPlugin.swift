@@ -147,6 +147,9 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandle
         case "setTempo":
             soundfontAudioPlayer.setTempo(call.arguments as! Double)
             
+        case "queueSequence":
+            soundfontAudioPlayer.queueSequence(call.arguments as! Int)
+            
         default:
           result(FlutterMethodNotImplemented)
         }

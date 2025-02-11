@@ -130,4 +130,9 @@ class MethodChannelSoundfontPlayer extends SoundfontPlayerPlatform {
   Future<void> setTempo(double tempo) async {
     await methodChannel.invokeMethod<void>('setTempo', tempo);
   }
+
+  @override
+  Future<void> queueSequence(int index) async {
+    await methodChannel.invokeMethod<void>('queueSequence', index);
+  }
 }

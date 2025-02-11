@@ -361,6 +361,10 @@ class SoundfontAudioPlayer {
         drumSequencerUnit?.setPlaying(false);
     }
     
+    func queueSequence(_ index: Int) {
+        drumSequencerUnit?.queueSequence(index)
+    }
+    
     var sequencerUnit: SequencerAudioUnit? {
         keyboardSequencer?.auAudioUnit as? SequencerAudioUnit
     }

@@ -75,6 +75,10 @@ public:
         mTempo = value;
     }
     
+    void queueSequence(int index) {
+        queuedSequenceIndex = index;
+    }
+    
     // MARK: -
     
     void setMusicalContextBlock(AUHostMusicalContextBlock contextBlock) {
@@ -119,41 +123,48 @@ public:
         
         // the sample time at the start of the buffer, as given by the render block,
         // ...modulo the length of the sequencer loop
-        double bufferStartTime = fmod(beatPositionInSamples, lengthInSamples);
-        double bufferEndTime = bufferStartTime + frameCount;
+        double bufferStartTimeSamples = fmod(beatPositionInSamples, lengthInSamples);
+        double bufferEndTimeSamples = bufferStartTimeSamples + frameCount;
         
-        //printf("Buffer %f %f\n", bufferStartTime, bufferEndTime);
-
-        // Using the `mChordPattern` as the basis of repeats
+        if (bufferEndTimeSamples > lengthInSamples) {
+            processEvents(timestamp, currentSequenceIndex, sequenceLength, lengthInSamples, bufferStartTimeSamples, lengthInSamples, 0);
+            if (currentSequenceIndex != queuedSequenceIndex) currentSequenceIndex = queuedSequenceIndex;
+            double remainingFramesInBuffer = lengthInSamples - bufferStartTimeSamples;
+            processEvents(timestamp, currentSequenceIndex, sequenceLength, lengthInSamples, 0, fmod(bufferEndTimeSamples, lengthInSamples), remainingFramesInBuffer);
+        } else {
+            processEvents(timestamp, currentSequenceIndex, sequenceLength, lengthInSamples, bufferStartTimeSamples, bufferEndTimeSamples, 0);
+        }
         
-        for (int trackIndex = 0; trackIndex < sequences[currentSequenceIndex].numberOfTracks; trackIndex++) {
+        //printf("Buffer %f %f\n", bufferStartTimeSamples, bufferEndTimeSamples);
 
-            for (int i = 0; i < sequences[currentSequenceIndex].tracks[trackIndex].eventCount; i++) {
+        return noErr;
+    }
+    
+    inline void processEvents(const AudioTimeStamp *timestamp,
+                              int sequenceIndex, double sequenceLength, double lengthInSamples,
+                              double bufferStartTimeSamples, double bufferEndTimeSamples,
+                              double eventOffset)
+    {
+        Sequence & sequence = sequences[sequenceIndex];
+        
+        for (int trackIndex = 0; trackIndex < sequence.numberOfTracks; trackIndex++) {
+
+            for (int i = 0; i < sequence.tracks[trackIndex].eventCount; i++) {
                 
-                TrackEvent * event = &sequences[currentSequenceIndex].tracks[trackIndex].events[i];
+                TrackEvent * event = &sequence.tracks[trackIndex].events[i];
                 double eventTime = (event->timestamp / sequenceLength) * lengthInSamples;
                 
-                bool eventIsInCurrentBuffer = eventTime >= bufferStartTime && eventTime < bufferEndTime;
-                bool loopsAround = bufferEndTime > lengthInSamples && eventTime < fmod(bufferEndTime, lengthInSamples);
+                bool eventIsInCurrentBuffer = eventTime >= bufferStartTimeSamples && eventTime < bufferEndTimeSamples;
                 
-                if (!(eventIsInCurrentBuffer || loopsAround)) continue;
+                if (!(eventIsInCurrentBuffer)) continue;
                 
-                // we should sound the event
-                double offset = eventTime - bufferStartTime;
-
-                if (loopsAround) {
-                    // in case of a loop transitition, add the remaining frames of the current buffer to the offset
-                    double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
-                    offset = eventTime + remainingFramesInBuffer;
-                }
+                double offset = eventTime - bufferStartTimeSamples + eventOffset;
                 
                 AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
                 uint8_t midiData[] = { event->status, event->data1, event->data2 };
                 mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
             }
         }
-        
-        return noErr;
     }
     
 private:
@@ -170,6 +181,7 @@ private:
 
     static const int numberOfSequences = 6;
     int currentSequenceIndex = 0;
+    int queuedSequenceIndex = 0;
     Sequence sequences[numberOfSequences];
     
     TPCircularBuffer fifoBuffer;
