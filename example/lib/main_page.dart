@@ -24,7 +24,6 @@ class _MyAppState extends State<MainPage> {
   bool _isPlaying = false;
   double _playheadPosition = 0.0;
   Timer? _timer;
-  int _playingNote = -1;
 
   final List<List<int>> _chords = [
     [60, 63, 67, 70],
@@ -107,7 +106,7 @@ class _MyAppState extends State<MainPage> {
 
     _startTimer();
     _soundfontPlayerPlugin.events.listen((event) {
-      print(event);
+      debugPrint(event);
     });
   }
 
@@ -162,16 +161,6 @@ class _MyAppState extends State<MainPage> {
     setState(() {
       _platformVersion = platformVersion;
     });
-  }
-
-  void _updatePlaying(int note) {
-    if (_playingNote == note) return;
-    if (note != -1) {
-      _soundfontPlayerPlugin.playNote(note, velocity: 127);
-    } else {
-      _soundfontPlayerPlugin.stopNote(_playingNote);
-    }
-    _playingNote = note;
   }
 
   @override
