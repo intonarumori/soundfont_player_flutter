@@ -79,7 +79,15 @@ class SoundfontPlayer {
     return SoundfontPlayerPlatform.instance.setTempo(tempo);
   }
 
-  Future<void> queueSequence(int index) {
-    return SoundfontPlayerPlatform.instance.queueSequence(index);
+  Future<void> queueSequence(int index, int followIndex) {
+    return SoundfontPlayerPlatform.instance.queueSequence(index, followIndex);
+  }
+
+  Future<int> getCurrentSequence() {
+    return SoundfontPlayerPlatform.instance.getCurrentSequence();
+  }
+
+  Future<int> getQueuedSequence() {
+    return SoundfontPlayerPlatform.instance.getQueuedSequence();
   }
 }

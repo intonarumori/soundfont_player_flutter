@@ -100,7 +100,15 @@ abstract class SoundfontPlayerPlatform extends PlatformInterface {
     throw UnimplementedError('setTempo() has not been implemented.');
   }
 
-  Future<void> queueSequence(int index) {
+  Future<void> queueSequence(int index, int followIndex) {
     throw UnimplementedError('queueSequence() has not been implemented.');
+  }
+
+  Future<int> getCurrentSequence() {
+    throw UnimplementedError('getCurrentSequence() has not been implemented.');
+  }
+
+  Future<int> getQueuedSequence() {
+    throw UnimplementedError('getQueuedSequence() has not been implemented.');
   }
 }

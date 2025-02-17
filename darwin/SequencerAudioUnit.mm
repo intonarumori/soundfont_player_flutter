@@ -11,6 +11,7 @@
 #import <CoreMIDI/CoreMIDI.h>
 #import "TPCircularBuffer.h"
 #import "SequencerKernel.hpp"
+#import "MidiHandler.hpp"
 
 @interface SequencerAudioUnit ()
 
@@ -24,6 +25,7 @@
 
 @implementation SequencerAudioUnit {
     SequencerKernel _kernel;
+    MidiHandler _midiHandler;
 }
 
 @synthesize parameterTree = _parameterTree;
@@ -41,6 +43,8 @@
     _kernel.setMusicalContextBlock(self.musicalContextBlock);
     _kernel.setTransportStateBlock(self.transportStateBlock);
     _kernel.initialize(_outputBus.format.sampleRate);
+    
+    _midiHandler.startSession();
    
     // initialize output bus
     AVAudioFormat *format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100 channels:2];

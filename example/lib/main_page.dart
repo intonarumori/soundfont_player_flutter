@@ -183,7 +183,7 @@ class _MyAppState extends State<MainPage> {
           onValueChanged: (v) {
             setState(() {
               _currentSequenceIndex = v;
-              _soundfontPlayerPlugin.queueSequence(v);
+              _soundfontPlayerPlugin.queueSequence(v, -1);
             });
           },
         ),

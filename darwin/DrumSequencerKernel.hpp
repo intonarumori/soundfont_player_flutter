@@ -75,8 +75,23 @@ public:
         mTempo = value;
     }
     
-    void queueSequence(int index) {
-        queuedSequenceIndex = index;
+    void queueSequence(int index, int followIndex) {
+        if (mPlaying) {
+            queuedSequenceIndex = index;
+            queuedSequenceFollowIndex = followIndex;
+        } else {
+            currentSequenceIndex = index;
+            queuedSequenceIndex = followIndex;
+            queuedSequenceFollowIndex = -1;
+        }
+    }
+    
+    int getCurrentSequence() const {
+        return currentSequenceIndex;
+    }
+    
+    int getQueuedSequence() const {
+        return queuedSequenceIndex;
     }
     
     // MARK: -
@@ -127,8 +142,13 @@ public:
         double bufferEndTimeSamples = bufferStartTimeSamples + frameCount;
         
         if (bufferEndTimeSamples > lengthInSamples) {
+            int previousSequenceIndex = currentSequenceIndex;
             processEvents(timestamp, currentSequenceIndex, sequenceLength, lengthInSamples, bufferStartTimeSamples, lengthInSamples, 0);
-            if (currentSequenceIndex != queuedSequenceIndex) currentSequenceIndex = queuedSequenceIndex;
+            if (currentSequenceIndex != queuedSequenceIndex && queuedSequenceIndex > -1) {
+                currentSequenceIndex = queuedSequenceIndex;
+                queuedSequenceIndex = queuedSequenceFollowIndex;
+                queuedSequenceFollowIndex = -1;
+            }
             double remainingFramesInBuffer = lengthInSamples - bufferStartTimeSamples;
             processEvents(timestamp, currentSequenceIndex, sequenceLength, lengthInSamples, 0, fmod(bufferEndTimeSamples, lengthInSamples), remainingFramesInBuffer);
         } else {
@@ -182,6 +202,7 @@ private:
     static const int numberOfSequences = 6;
     int currentSequenceIndex = 0;
     int queuedSequenceIndex = 0;
+    int queuedSequenceFollowIndex = 0;
     Sequence sequences[numberOfSequences];
     
     TPCircularBuffer fifoBuffer;

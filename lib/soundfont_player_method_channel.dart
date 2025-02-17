@@ -132,7 +132,21 @@ class MethodChannelSoundfontPlayer extends SoundfontPlayerPlatform {
   }
 
   @override
-  Future<void> queueSequence(int index) async {
-    await methodChannel.invokeMethod<void>('queueSequence', index);
+  Future<void> queueSequence(int index, int followIndex) async {
+    await methodChannel
+        .invokeMethod<void>('queueSequence', {"index": index, "followIndex": followIndex});
   }
+
+  @override
+  Future<int> getCurrentSequence() async {
+    final result = await methodChannel.invokeMethod<int>('getCurrentSequence');
+    return result ?? 0;
+  }
+
+  @override
+  Future<int> getQueuedSequence() async {
+    final result = await methodChannel.invokeMethod<int>('getQueuedSequence');
+    return result ?? 0;
+  }
+
 }

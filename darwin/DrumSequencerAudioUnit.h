@@ -5,6 +5,8 @@
 //  Created by Corné Driesprong on 31/03/2023.
 //
 
+#pragma once
+
 #import <AudioToolbox/AudioToolbox.h>
 #import <AVFoundation/AVFoundation.h>
 
@@ -14,6 +16,8 @@
 - (void)setTrack:(NSDictionary *)data;
 - (NSDictionary *)getTrack:(NSInteger)sequenceIndex trackIndex:(NSInteger)trackIndex;
 - (void)setTempo:(double)value;
-- (void)queueSequence:(NSInteger)index;
+- (void)queueSequence:(NSInteger)index followIndex:(NSInteger)followIndex;
+- (NSInteger)getCurrentSequence;
+- (NSInteger)getQueuedSequence;
 
 @end

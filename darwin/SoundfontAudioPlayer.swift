@@ -4,11 +4,6 @@ import Foundation
 import AVFoundation
 import AudioToolbox
 
-class Chords {
-    static let minor9 = [0,3,7,10,14]
-    static let major9 = [0,4,7,11,14]
-}
-
 struct ChordEvent {
     let root: Int
     let notes: [Int]
@@ -83,7 +78,7 @@ class SoundfontAudioPlayer {
     private var drumSequencer: AVAudioUnit?
     private var drumSampler: AVAudioUnitSampler
 
-    private var midiIn = MidiSource()
+    //private var midiIn = MidiSource()
 
     private var repeating: Bool = false
 
@@ -94,6 +89,7 @@ class SoundfontAudioPlayer {
     var pattern: ChordPattern = ChordPattern(steps: [])
     
     init() {
+        
         audioEngine = AVAudioEngine()
         
         keyboardSampler = AVAudioUnitSampler()
@@ -153,7 +149,7 @@ class SoundfontAudioPlayer {
         
         startEngineIfReady()
                 
-        midiIn.callback = self.handleEvent
+       // midiIn.callback = self.handleEvent
     }
     
     private func instantiateDrumSequencer() {
@@ -193,55 +189,56 @@ class SoundfontAudioPlayer {
     }
     
     private func instantiateSequencer() {
-        let myUnitType = kAudioUnitType_MIDIProcessor
-        let mySubType : OSType = 1
-        
-        let compDesc = AudioComponentDescription(
-            componentType: myUnitType,
-            componentSubType:  mySubType,
-            componentManufacturer: 0x665f6f20, // 4 hex byte OSType 'foo '
-            componentFlags:        AudioComponentFlags.sandboxSafe.rawValue,
-            componentFlagsMask:    0
-        )
-
-        AUAudioUnit.registerSubclass(
-            SequencerAudioUnit.self,
-            as: compDesc,
-            name: "Sequencer",   // my AUAudioUnit subclass
-            version:   1
-        )
-
-        AVAudioUnit.instantiate(
-            with: compDesc,
-            options: .init(rawValue: 0),
-            completionHandler: { [weak self] (audiounit: AVAudioUnit?, error: Error?) in
-                guard let self else { return }
-                
-                audioEngine.attach(audiounit!)
-                
-                keyboardSequencer = audiounit!
-                
-//                audiounit?.auAudioUnit.musicalContextBlock = { [weak self] _, _, _, _, _, _ in
-//                    return false
+//        let myUnitType = kAudioUnitType_MIDIProcessor
+//        let mySubType : OSType = 1
+//        
+//        let compDesc = AudioComponentDescription(
+//            componentType: myUnitType,
+//            componentSubType:  mySubType,
+//            componentManufacturer: 0x665f6f20, // 4 hex byte OSType 'foo '
+//            componentFlags:        AudioComponentFlags.sandboxSafe.rawValue,
+//            componentFlagsMask:    0
+//        )
+//
+//        AUAudioUnit.registerSubclass(
+//            SequencerAudioUnit.self,
+//            as: compDesc,
+//            name: "Sequencer",   // my AUAudioUnit subclass
+//            version:   1
+//        )
+//
+//        AVAudioUnit.instantiate(
+//            with: compDesc,
+//            options: .init(rawValue: 0),
+//            completionHandler: { [weak self] (audiounit: AVAudioUnit?, error: Error?) in
+//                guard let self else { return }
+//                
+//                audioEngine.attach(audiounit!)
+//                
+//                keyboardSequencer = audiounit!
+//                
+////                audiounit?.auAudioUnit.musicalContextBlock = { [weak self] _, _, _, _, _, _ in
+////                    return false
+////                }
+////                audiounit?.auAudioUnit.midiOutputEventBlock = { [weak self] _, _, _, _ in
+////                    return noErr
+////                }
+////                audiounit?.auAudioUnit.transportStateBlock = { [weak self] _, _, _, _ in
+////                    return false
+////                }
+//                if #available(iOS 16, macOS 13, *) {
+//                    audioEngine.connectMIDI(audiounit!, to: self.keyboardSampler, format: nil, eventListBlock: nil)
+//                } else {
+//                    audioEngine.connectMIDI(audiounit!, to: self.keyboardSampler, format: nil)
 //                }
-//                audiounit?.auAudioUnit.midiOutputEventBlock = { [weak self] _, _, _, _ in
-//                    return noErr
-//                }
-//                audiounit?.auAudioUnit.transportStateBlock = { [weak self] _, _, _, _ in
-//                    return false
-//                }
-                if #available(iOS 16, macOS 13, *) {
-                    audioEngine.connectMIDI(audiounit!, to: self.keyboardSampler, format: nil, eventListBlock: nil)
-                } else {
-                    audioEngine.connectMIDI(audiounit!, to: self.keyboardSampler, format: nil)
-                }
-
-                startEngineIfReady()
-            }
-        )
+//
+//                startEngineIfReady()
+//            }
+//        )
     }
     
     private func startEngineIfReady() {
+        return
         guard let _ = keyboardSequencer, let _ = drumSequencer else {
             return
         }
@@ -361,10 +358,18 @@ class SoundfontAudioPlayer {
         drumSequencerUnit?.setPlaying(false);
     }
     
-    func queueSequence(_ index: Int) {
-        drumSequencerUnit?.queueSequence(index)
+    func queueSequence(_ index: Int, followIndex: Int) {
+        drumSequencerUnit?.queueSequence(index, follow: followIndex)
     }
     
+    func getCurrentDrumSequence() -> Int {
+        drumSequencerUnit?.getCurrentSequence() ?? 0
+    }
+
+    func getQueuedDrumSequence() -> Int {
+        drumSequencerUnit?.getQueuedSequence() ?? 0
+    }
+
     var sequencerUnit: SequencerAudioUnit? {
         keyboardSequencer?.auAudioUnit as? SequencerAudioUnit
     }

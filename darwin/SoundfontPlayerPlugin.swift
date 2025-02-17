@@ -24,10 +24,12 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandle
     
     override init() {
         super.init()        
-        soundfontAudioPlayer = SoundfontAudioPlayer()
+        //soundfontAudioPlayer = SoundfontAudioPlayer()
+        audioPlayer = AudioPlayer()
     }
 
-    private var soundfontAudioPlayer: SoundfontAudioPlayer!
+    //private var soundfontAudioPlayer: SoundfontAudioPlayer!
+    private var audioPlayer: AudioPlayer!
     
     private var eventSink: FlutterEventSink?
     
@@ -65,91 +67,101 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandle
             let args = call.arguments as? [String: Any] ?? [:]
             let note = args["note"] as! Int
             let velocity = args["velocity"] as! Int
-            soundfontAudioPlayer.play(note: UInt8(note), velocity: UInt8(velocity))
+            audioPlayer.playNote(UInt8(note), velocity: UInt8(velocity))
+            result(nil)
         case "stopNote":
             let args = call.arguments as? [String: Any] ?? [:]
             let note = args["note"] as! Int
-            soundfontAudioPlayer.stop(note: UInt8(note))
+            audioPlayer.stopNote(UInt8(note))
+            result(nil)
         case "loadFont":
             let args = call.arguments as? [String: Any] ?? [:]
             let path = args["path"] as! String
-            soundfontAudioPlayer.loadSoundfont(path: path)
+            audioPlayer.loadSoundfont(path)
+            result(nil)
         case "loadDrums":
             let args = call.arguments as? [String: Any] ?? [:]
             let path = args["path"] as! String
-            soundfontAudioPlayer.loadDrumSoundfont(path: path)
+            audioPlayer.loadDrumSoundfont(path)
+            result(nil)
         case "startSequencer":
-            soundfontAudioPlayer.startSequencer()
+            audioPlayer.startSequencer()
+            result(nil)
         case "stopSequencer":
-            soundfontAudioPlayer.stopSequencer()
+            audioPlayer.stopSequencer()
+            result(nil)
         case "getIsPlaying":
-            result(soundfontAudioPlayer.isPlaying)
+            result(audioPlayer.isPlaying())
         case "setRepeating":
-            soundfontAudioPlayer.setRepeating(call.arguments as! Bool)
-            break
-        case "addChord":
-            let args = call.arguments as? [String: Any] ?? [:]
-            let notes = args["notes"] as! [Int]
-            let root = args["root"] as! Int
-            let duration = args["duration"] as! Double
-            let timestamp = args["timestamp"] as! Double
-            let velocity = args["velocity"] as! Int
-            soundfontAudioPlayer.addChord(
-                ChordEvent(root: root, notes:notes, velocity: velocity, timestamp: timestamp, duration: duration)
-            )
-        case "removeChord":
-            let args = call.arguments as? [String: Any] ?? [:]
-            let notes = args["notes"] as! [Int]
-            let root = args["root"] as! Int
-            let duration = args["duration"] as! Double
-            let timestamp = args["timestamp"] as! Double
-            let velocity = args["velocity"] as! Int
-            soundfontAudioPlayer.removeChord(
-                ChordEvent(root: root, notes:notes, velocity: velocity, timestamp: timestamp, duration: duration)
-            )
+            audioPlayer.setRepeating(call.arguments as! Bool)
+            result(nil)
+//        case "addChord":
+//            let args = call.arguments as? [String: Any] ?? [:]
+//            let event = Chord2Event()
+//            event.root = args["root"] as! Int
+//            event.velocity = args["velocity"] as! Int
+//            event.notes = (args["notes"] as! [Int]).map( { NSNumber(value: $0) })
+//            event.duration = args["duration"] as! Double
+//            event.timestamp = args["timestamp"] as! Double
+//            audioPlayer.addChord(event)
+//            result(nil)
+//        case "removeChord":
+//            let args = call.arguments as? [String: Any] ?? [:]
+//            let event = Chord2Event()
+//            event.root = args["root"] as! Int
+//            event.velocity = args["velocity"] as! Int
+//            event.notes = (args["notes"] as! [Int]).map( { NSNumber(value: $0) })
+//            event.duration = args["duration"] as! Double
+//            event.timestamp = args["timestamp"] as! Double
+//            audioPlayer.removeChord(event)
+//            result(nil)
         case "addRhythmEvent":
             let args = call.arguments as? [String: Any] ?? [:]
-            let note = args["note"] as! Int
-            let duration = args["duration"] as! Double
-            let timestamp = args["timestamp"] as! Double
-            let velocity = args["velocity"] as! Int
-            soundfontAudioPlayer.addRhythmEvent(RhythmEvent(note: UInt8(note), velocity: UInt8(velocity), timestamp: timestamp, duration: duration))
-            break
+            let event = Rhythm2Event();
+            event.note = args["note"] as! Int
+            event.duration = args["duration"] as! Double
+            event.timestamp = args["timestamp"] as! Double
+            event.velocity = args["velocity"] as! Int
+            audioPlayer.add(event)
+            result(nil)
         case "removeRhythmEvent":
             let args = call.arguments as? [String: Any] ?? [:]
-            let note = args["note"] as! Int
-            let duration = args["duration"] as! Double
-            let timestamp = args["timestamp"] as! Double
-            let velocity = args["velocity"] as! Int
-            soundfontAudioPlayer.removeRhythmEvent(RhythmEvent(note: UInt8(note), velocity: UInt8(velocity), timestamp: timestamp, duration: duration))
-            break
-            
+            let event = Rhythm2Event();
+            event.note = args["note"] as! Int
+            event.duration = args["duration"] as! Double
+            event.timestamp = args["timestamp"] as! Double
+            event.velocity = args["velocity"] as! Int
+            audioPlayer.remove(event)
+            result(nil)
         case "setChordPattern":
             let args = call.arguments as? [String: Any] ?? [:]
-            let pattern = ChordPattern.fromMap(args)
-            soundfontAudioPlayer.setChordPattern(pattern)
-            break
-            
+            audioPlayer.setChordPattern(args)
+            result(nil)
         case "setDrumTrack":
             let args = call.arguments as? [String: Any] ?? [:]
-            soundfontAudioPlayer.setDrumTrack(args)
-            break
-            
+            audioPlayer.setDrumTrack(args)
+            result(nil)
         case "getDrumTrack":
             let args = call.arguments as? [String: Any] ?? [:]
             let sequenceIndex = args["sequence"] as! Int
             let trackIndex = args["track"] as! Int
-            result(soundfontAudioPlayer.getDrumTrack(sequenceIndex: sequenceIndex, trackIndex: trackIndex))
-
+            result(audioPlayer.getDrumTrack(sequenceIndex, track: trackIndex))
         case "getPlayheadPosition":
-            result(soundfontAudioPlayer.playheadPosition)
-        
+            result(audioPlayer.getPlayheadPosition())
         case "setTempo":
-            soundfontAudioPlayer.setTempo(call.arguments as! Double)
-            
+            //soundfontAudioPlayer.setTempo(call.arguments as! Double)
+            result(nil)
         case "queueSequence":
-            soundfontAudioPlayer.queueSequence(call.arguments as! Int)
-            
+            let args = call.arguments as! [String: Any]
+            let index = args["index"] as! Int
+            let followIndex = args["followIndex"] as! Int
+            audioPlayer.queueSequence(index, follow: followIndex)
+            result(nil)
+        case "getCurrentSequence":
+            result(audioPlayer.getCurrentDrumSequence())
+
+        case "getQueuedSequence":
+            result(audioPlayer.getQueuedDrumSequence())
         default:
           result(FlutterMethodNotImplemented)
         }

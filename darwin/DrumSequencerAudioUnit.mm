@@ -30,11 +30,11 @@
     if (self == nil) { return nil; }
     
     // // TODO: these become available later for some reason
-     _kernel.setMIDIOutputEventBlock(self.MIDIOutputEventBlock);
-     _kernel.setMusicalContextBlock(self.musicalContextBlock);
-     _kernel.setTransportStateBlock(self.transportStateBlock);
-     _kernel.initialize(_outputBus.format.sampleRate);
-   
+    _kernel.setMIDIOutputEventBlock(self.MIDIOutputEventBlock);
+    _kernel.setMusicalContextBlock(self.musicalContextBlock);
+    _kernel.setTransportStateBlock(self.transportStateBlock);
+    _kernel.initialize(_outputBus.format.sampleRate);
+    
     // initialize output bus
     AVAudioFormat *format = [[AVAudioFormat alloc] initStandardFormatWithSampleRate:44100 channels:2];
     _outputBus = [[AUAudioUnitBus alloc] initWithFormat:format error:nil];
@@ -155,9 +155,17 @@
     _kernel.setTempo(value);
 }
 
-- (void)queueSequence:(NSInteger)index
+- (void)queueSequence:(NSInteger)index followIndex:(NSInteger)followIndex
 {
-    _kernel.queueSequence(index);
+    _kernel.queueSequence((int)index, (int)followIndex);
+}
+
+- (NSInteger)getCurrentSequence {
+    return _kernel.getCurrentSequence();
+}
+
+- (NSInteger)getQueuedSequence {
+    return _kernel.getQueuedSequence();
 }
 
 #pragma mark - MIDI

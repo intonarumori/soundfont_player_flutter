@@ -14,7 +14,7 @@ A new Flutter plugin project.
   s.author           = { 'Your Company' => 'email@example.com' }
 
   s.source           = { :path => '.' }
-  s.source_files = 'Classes/**/*.{swift,m,mm,c,h,hpp}'
+  s.source_files = 'Classes/**/*.{swift,m,mm,c,cpp,h,hpp}'
   s.public_header_files = 'Classes/**/*.{h,hpp}'
   s.library = 'c++'
   
