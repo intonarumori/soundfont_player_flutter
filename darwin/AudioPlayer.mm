@@ -156,11 +156,19 @@ static void MidiCallback(void * ref, int note, int velocity) {
 }
 
 - (void)playNote:(uint8_t)note velocity:(uint8_t)velocity {
-    [keyboardSampler startNote:note withVelocity:velocity onChannel:1];
+    if (repeating) {
+        [(SequencerAudioUnit *)keyboardSequencer.AUAudioUnit pressNote:note];
+    } else {
+        [keyboardSampler startNote:note withVelocity:velocity onChannel:1];
+    }
 }
 
 - (void)stopNote:(uint8_t)note {
-    [keyboardSampler stopNote:note onChannel:1];
+    if (repeating) {
+        [(SequencerAudioUnit *)keyboardSequencer.AUAudioUnit releaseNote:note];
+    } else {
+        [keyboardSampler stopNote:note onChannel:1];
+    }
 }
 
 - (void)startSequencer {
