@@ -149,4 +149,8 @@ class MethodChannelSoundfontPlayer extends SoundfontPlayerPlatform {
     return result ?? 0;
   }
 
+  @override
+  Future<void> setKeyboardVolume(double volume) async {
+    return await methodChannel.invokeMethod<void>('setKeyboardVolume', volume);
+  }
 }

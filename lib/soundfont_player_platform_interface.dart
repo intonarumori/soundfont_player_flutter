@@ -111,4 +111,8 @@ abstract class SoundfontPlayerPlatform extends PlatformInterface {
   Future<int> getQueuedSequence() {
     throw UnimplementedError('getQueuedSequence() has not been implemented.');
   }
+
+  Future<void> setKeyboardVolume(double volume) {
+    throw UnimplementedError('setKeyboardVolume() has not been implemented.');
+  }
 }

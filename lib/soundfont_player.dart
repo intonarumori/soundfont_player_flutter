@@ -90,4 +90,8 @@ class SoundfontPlayer {
   Future<int> getQueuedSequence() {
     return SoundfontPlayerPlatform.instance.getQueuedSequence();
   }
+
+  Future<void> setKeyboardVolume(double volume) {
+    return SoundfontPlayerPlatform.instance.setKeyboardVolume(volume);
+  }
 }

@@ -141,7 +141,7 @@
                 @"timestamp": [NSNumber numberWithDouble:event.timestamp],
                 @"note": [NSNumber numberWithInt:event.data1],
                 @"velocity": [NSNumber numberWithInt:event.data2],
-                @"duration": [NSNumber numberWithDouble:0.1],
+                @"duration": [NSNumber numberWithDouble:0.5],
             }];
         }
     }

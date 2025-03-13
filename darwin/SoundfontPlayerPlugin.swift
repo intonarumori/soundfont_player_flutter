@@ -137,6 +137,9 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandle
             let args = call.arguments as? [String: Any] ?? [:]
             audioPlayer.setChordPattern(args)
             result(nil)
+        case "setKeyboardVolume":
+            audioPlayer.setKeyboardVolume(call.arguments as! Double)
+            result(nil)
         case "setDrumTrack":
             let args = call.arguments as? [String: Any] ?? [:]
             audioPlayer.setDrumTrack(args)
@@ -149,7 +152,7 @@ public class SoundfontPlayerPlugin: NSObject, FlutterPlugin, FlutterStreamHandle
         case "getPlayheadPosition":
             result(audioPlayer.getPlayheadPosition())
         case "setTempo":
-            //soundfontAudioPlayer.setTempo(call.arguments as! Double)
+            audioPlayer.setTempo(call.arguments as! Double)
             result(nil)
         case "queueSequence":
             let args = call.arguments as! [String: Any]
