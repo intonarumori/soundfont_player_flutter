@@ -22,6 +22,46 @@ struct PlayingNote {
     bool active;
 };
 
+struct PlayingNotes {
+    
+    PlayingNotes() {
+        for (int i = 0; i < 16; i++) {
+            mPlayingNotes[i].active = false;
+        }
+    }
+    
+    bool isPlayingNote(int note) {
+        for (int i = 0; i < 16; i++) {
+            if (mPlayingNotes[i].active && mPlayingNotes[i].eventNote == note) return true;
+        }
+        return false;
+    }
+    
+    bool isActiveNote(int index, int * note) {
+        if (mPlayingNotes[index].active) {
+            *note = mPlayingNotes[index].eventNote;
+            return true;
+        }
+        return false;
+    }
+    
+    void deactiveNote(int index) {
+        mPlayingNotes[index].active = false;
+    }
+    
+    void activateNote(int index, int note, int shiftedNote) {
+        mPlayingNotes[index].active = true;
+        mPlayingNotes[index].eventNote = note;
+        mPlayingNotes[index].shiftedNote = shiftedNote;
+    }
+    
+    int getShiftedNote(int index) {
+        return mPlayingNotes[index].shiftedNote;
+    }
+    
+    PlayingNote mPlayingNotes[16];
+};
+
 class SequencerKernel {
 public:
     SequencerKernel() {
@@ -31,10 +71,6 @@ public:
         sequence = {};
         sequence.eventCount = 0;
         sequence.length = 4;
-        
-        for (int i = 0; i < 16; i++) {
-            mPlayingNotes[i].active = false;
-        }
     }
     
     void initialize(double sampleRate) {
@@ -193,11 +229,14 @@ public:
 
         // Clear any notes that might have been released
         for (int i = 0; i < 16; i++) {
-            if (mPlayingNotes[i].active && !heldNotes.isNoteHeld(mPlayingNotes[i].eventNote)) {
-                mPlayingNotes[i].active = false;
-                uint8_t note = mPlayingNotes[i].shiftedNote;
-                uint8_t midiData[] = { 0x80, note, 0 };
-                mMIDIOutputEventBlock(AUEventSampleTimeImmediate, 0, sizeof(midiData), midiData);
+            int note;
+            if (mPlayingNotes.isActiveNote(i, &note)) {
+                if (!heldNotes.isNoteHeld(note)) {
+                    uint8_t shiftedNote = mPlayingNotes.getShiftedNote(i);
+                    mPlayingNotes.deactiveNote(i);
+                    uint8_t midiData[] = { 0x80, shiftedNote, 0 };
+                    mMIDIOutputEventBlock(AUEventSampleTimeImmediate, 0, sizeof(midiData), midiData);
+                }
             }
         }
 
@@ -254,13 +293,11 @@ public:
                                     // play it
                                     // Find a slot in the playing notes
                                     for (int i = 0; i < 16; i++) {
-                                        if (!mPlayingNotes[i].active) {
-                                            mPlayingNotes[i].active = true;
-                                            mPlayingNotes[i].eventNote = playingNote;
-                                            mPlayingNotes[i].shiftedNote = playingNote;
+                                        int note;
+                                        if (!mPlayingNotes.isActiveNote(i, &note)) {
+                                            mPlayingNotes.activateNote(i, playingNote, playingNote);
                                             uint8_t midiData[] = { 0x90, (uint8_t)playingNote, 100 };
                                             mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
-                                            
                                             //printf("Triggering note: %d (%llu) %f\n", playingNote, sampleTime, eventTime);
                                             break;
                                         }
@@ -286,12 +323,12 @@ public:
                                 }
                                 if (playingNote > -1) {
                                     for (int i = 0; i < 16; i++) {
-                                        if (mPlayingNotes[i].active && mPlayingNotes[i].eventNote == playingNote) {
-                                            mPlayingNotes[i].active = false;
-                                            uint8_t note = mPlayingNotes[i].shiftedNote;
-                                            uint8_t midiData[] = { 0x80, note, 0 };
+                                        int note;
+                                        if (mPlayingNotes.isActiveNote(i, &note) && note == playingNote) {
+                                            uint8_t shiftedNote = mPlayingNotes.getShiftedNote(i);
+                                            mPlayingNotes.deactiveNote(i);
+                                            uint8_t midiData[] = { 0x80, shiftedNote, 0 };
                                             mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
-                                            //printf("Clearing note: %d (%llu) %f\n", note, sampleTime, eventTime);
                                         }
                                     }
                                 }
@@ -358,10 +395,8 @@ public:
                             for (uint8_t note = 0; note < 128; note++) {
                                 if (heldNotes.isNoteHeld(note)) {
                                     for (int i = 0; i < 16; i++) {
-                                        if (!mPlayingNotes[i].active) {
-                                            mPlayingNotes[i].active = true;
-                                            mPlayingNotes[i].eventNote = note;
-                                            mPlayingNotes[i].shiftedNote = note;
+                                        if (!mPlayingNotes.isActiveNote(i, nullptr)) {
+                                            mPlayingNotes.activateNote(i, note, note);
                                             uint8_t midiData[] = { event.status, note, event.data2 };
                                             mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
                                             break;
@@ -372,10 +407,10 @@ public:
                         } break;
                         case 0x80: {
                             for (int i = 0; i < 16; i++) {
-                                if (mPlayingNotes[i].active) {
-                                    mPlayingNotes[i].active = false;
-                                    uint8_t note = mPlayingNotes[i].shiftedNote;
-                                    uint8_t midiData[] = { event.status, note, event.data2 };
+                                if (mPlayingNotes.isActiveNote(i, nullptr)) {
+                                    uint8_t shiftedNote = mPlayingNotes.getShiftedNote(i);
+                                    mPlayingNotes.deactiveNote(i);
+                                    uint8_t midiData[] = { event.status, shiftedNote, event.data2 };
                                     mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
                                 }
                             }
@@ -445,8 +480,8 @@ private:
     double mTempo = 120.0;
     
     double mPlayheadPosition = 0.0;
-    
-    PlayingNote mPlayingNotes[16];
+
+    PlayingNotes mPlayingNotes;
     
     TPCircularBuffer fifoBuffer;
     MIDISequence sequence = {};
