@@ -287,7 +287,7 @@ public:
         if (!transportMoving) return noErr;
 
         // Using the `mChordPattern` as the basis of repeats
-        if (true)
+        if (mRepeating)
         {
             // Enumerate the pattern steps
             for (int i = 0; i < 16; i++) {
