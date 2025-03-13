@@ -41,6 +41,56 @@ static void MidiCallback(void * ref, int note, int velocity) {
     if (self = [super init]) {
         audioEngine = [AVAudioEngine new];
         
+
+        
+        
+        
+        #if TARGET_OS_IPHONE  // For iOS & Mac Catalyst
+            AVAudioSession *audioSession = [AVAudioSession sharedInstance];
+
+            NSError *error = nil;
+            if ([audioSession setCategory:AVAudioSessionCategoryPlayAndRecord mode:AVAudioSessionModeDefault options:0 error:&error]) {
+                
+                // Set preferred buffer duration (512 samples at 44.1kHz)
+                double preferredBufferDuration = 64.0 / 44100.0;
+                [audioSession setPreferredIOBufferDuration:preferredBufferDuration error:&error];
+
+                if (!error) {
+                    NSLog(@"Set preferred IO buffer duration: %f seconds", preferredBufferDuration);
+                }
+            }
+
+        #else  // For macOS (AppKit)
+            AVAudioOutputNode *outputNode = [audioEngine outputNode];
+            AudioUnit audioUnit = outputNode.audioUnit;
+
+            if (audioUnit) {
+                UInt32 bufferSizeFrames = 64;  // Set preferred block size in frames
+                UInt32 size = sizeof(bufferSizeFrames);
+
+                OSStatus status = AudioUnitSetProperty(
+                    audioUnit,
+                    kAudioDevicePropertyBufferFrameSize,
+                    kAudioUnitScope_Global,
+                    0,
+                    &bufferSizeFrames,
+                    size
+                );
+
+                if (status == noErr) {
+                    NSLog(@"Successfully set buffer size to %u frames", bufferSizeFrames);
+                } else {
+                    NSLog(@"Error setting buffer size: %d", status);
+                }
+            }
+        #endif
+        
+        
+        
+        
+        
+        
+        
         keyboardSampler = [AVAudioUnitSampler new];
         [audioEngine attachNode:keyboardSampler];
         [audioEngine connect:keyboardSampler to:audioEngine.mainMixerNode format:nil];
@@ -157,19 +207,11 @@ static void MidiCallback(void * ref, int note, int velocity) {
 }
 
 - (void)playNote:(uint8_t)note velocity:(uint8_t)velocity {
-    if (repeating) {
-        [(SequencerAudioUnit *)keyboardSequencer.AUAudioUnit pressNote:note];
-    } else {
-        [keyboardSampler startNote:note withVelocity:velocity onChannel:1];
-    }
+    [(SequencerAudioUnit *)keyboardSequencer.AUAudioUnit pressNote:note];
 }
 
 - (void)stopNote:(uint8_t)note {
-    if (repeating) {
-        [(SequencerAudioUnit *)keyboardSequencer.AUAudioUnit releaseNote:note];
-    } else {
-        [keyboardSampler stopNote:note onChannel:1];
-    }
+   [(SequencerAudioUnit *)keyboardSequencer.AUAudioUnit releaseNote:note];
 }
 
 - (void)setTempo:(double)tempo

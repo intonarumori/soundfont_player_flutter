@@ -13,6 +13,7 @@
 #import <stdio.h>
 #import "TPCircularBuffer.h"
 #import "KeyboardState.hpp"
+#include <mach/mach_time.h>
 
 #ifdef __cplusplus
 
@@ -98,7 +99,7 @@ public:
     }
     
     void pressNote(uint8_t note) {
-        heldNotes.pressNote(note);
+        heldNotes.pressNote(note, mach_absolute_time());
     }
     
     void releaseNote(uint8_t note) {
@@ -162,6 +163,9 @@ public:
         //        return noErr;
         
         // move MIDI events from FIFO buffer to internal sequencer buffer
+        
+        uint64_t blockStartTimestamp = mach_absolute_time();
+        
         uint32_t bytes = -1;
         while (bytes != 0) {
             SequenceOperation *op = (SequenceOperation *)TPCircularBufferTail(&fifoBuffer, &bytes);
@@ -187,44 +191,7 @@ public:
                 }
             }
         }
-        
-        if (!mPlaying) return noErr;
-        
-        double tempo = mTempo;
-        double beatPosition = 0.0;
-        
-        if (mInternalClock) {
-            beatPosition = totalFrameCount / (mSampleRate * 60.0 / tempo);
-            totalFrameCount += frameCount;
-        } else {
-            // get the tempo and beat position from the musical context provided by the host
-            mMusicalContextBlock(&tempo, NULL, NULL, &beatPosition, NULL, NULL);
-        }
-        
-        mPlayheadPosition = fmod(beatPosition, sequence.length);
-        
-        bool transportMoving = false;
-        
-        if (mInternalClock) {
-            transportMoving = true;
-        } else {
-            AUHostTransportStateFlags transportStateFlags;
-            if (mTransportStateBlock(&transportStateFlags, NULL, NULL, NULL)) {
-                transportMoving = (transportStateFlags & AUHostTransportStateMoving) != 0;
-            }
-        }
-        
-        if (!transportMoving) return noErr;
-        
-        // the length of the sequencer loop in musical time (8.0 == 8 quarter notes)
-        double lengthInSamples = sequence.length / tempo * 60. * mSampleRate;
-        double beatPositionInSamples = beatPosition / tempo * 60. * mSampleRate;
-        
-        // the sample time at the start of the buffer, as given by the render block,
-        // ...modulo the length of the sequencer loop
-        double bufferStartTime = fmod(beatPositionInSamples, lengthInSamples);
-        double bufferEndTime = bufferStartTime + frameCount;
-        
+                
         //printf("Buffer %f %f\n", bufferStartTime, bufferEndTime);
 
         // Clear any notes that might have been released
@@ -239,6 +206,85 @@ public:
                 }
             }
         }
+        
+        // Play notes based on incoming midi notes.
+        if (!mRepeating) {
+            for (int i = 0; i < 128; i++) {
+                if (heldNotes.isNoteHeld(i)) {
+                    bool hasPlayingNote = false;
+                    for (int j = 0; j < 16; j++) {
+                        int note;
+                        if (mPlayingNotes.isActiveNote(j, &note) && note == i) {
+                            hasPlayingNote = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!hasPlayingNote) {
+
+                        // TODO: use the timestamp to more accurately trigger the midi notes
+                        // Since the diff is under 1 ms right now, we can improve this later
+//                        uint64_t timestamp = heldNotes.getTimestamp(i);
+//                        uint64_t diffSeconds = blockStartTimestamp > timestamp ? blockStartTimestamp - timestamp : 0;
+//                        mach_timebase_info_data_t timebase;
+//                        mach_timebase_info(&timebase);
+//                        uint64_t milliseconds = diffSeconds * timebase.numer / timebase.denom / NSEC_PER_MSEC;
+                        //printf("Diff timestamp %llu\n", milliseconds);
+                        
+                        for (int j = 0; j < 16; j++) {
+                            int note;
+                            if (!mPlayingNotes.isActiveNote(j, &note)) {
+                                mPlayingNotes.activateNote(j, i, i);
+                                uint8_t midiData[] = { 0x90, (uint8_t)i, 100 };
+                                mMIDIOutputEventBlock(AUEventSampleTimeImmediate, 0, sizeof(midiData), midiData);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+
+        double tempo = mTempo;
+        double beatPosition = 0.0;
+        
+        if (mInternalClock) {
+            beatPosition = totalFrameCount / (mSampleRate * 60.0 / tempo);
+            totalFrameCount += frameCount;
+        } else {
+            // get the tempo and beat position from the musical context provided by the host
+            mMusicalContextBlock(&tempo, NULL, NULL, &beatPosition, NULL, NULL);
+        }
+        
+        if (mPlaying) {
+            mPlayheadPosition = fmod(beatPosition, sequence.length);
+        } else {
+            return noErr;
+        }
+        
+        
+        bool transportMoving = false;
+        
+        if (mInternalClock) {
+            transportMoving = true;
+        } else {
+            AUHostTransportStateFlags transportStateFlags;
+            if (mTransportStateBlock(&transportStateFlags, NULL, NULL, NULL)) {
+                transportMoving = (transportStateFlags & AUHostTransportStateMoving) != 0;
+            }
+        }
+                
+        // the length of the sequencer loop in musical time (8.0 == 8 quarter notes)
+        double lengthInSamples = sequence.length / tempo * 60. * mSampleRate;
+        double beatPositionInSamples = beatPosition / tempo * 60. * mSampleRate;
+        
+        // the sample time at the start of the buffer, as given by the render block,
+        // ...modulo the length of the sequencer loop
+        double bufferStartTime = fmod(beatPositionInSamples, lengthInSamples);
+        double bufferEndTime = bufferStartTime + frameCount;
+
+        if (!transportMoving) return noErr;
 
         // Using the `mChordPattern` as the basis of repeats
         if (true)

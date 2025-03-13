@@ -13,23 +13,33 @@
 
 #ifdef __cplusplus
 
+struct KeyboardStateNote {
+    int8_t note;
+    uint64_t timestamp;
+};
+
 class KeyboardState {
 public:
     bool isNoteHeld(uint8_t note) {
-        return mHeldNotes[note] > 0;
+        return mHeldNotes[note].note > 0;
+    }
+    
+    uint64_t getTimestamp(uint8_t note) {
+        return mHeldNotes[note].timestamp;
     }
     
     void releaseNote(uint8_t note) {
-        mHeldNotes[note] = 0;
+        mHeldNotes[note].note = 0;
     }
     
-    void pressNote(uint8_t note) {
-        mHeldNotes[note] = 1;
+    void pressNote(uint8_t note, uint64_t timestamp) {
+        mHeldNotes[note].note = 1;
+        mHeldNotes[note].timestamp = timestamp;
     }
     
     int16_t firstPressedNote() {
         for (int i = 0; i < NOTES_COUNT; ++i) {
-            if (mHeldNotes[i] > 0) {
+            if (mHeldNotes[i].note >= 0) {
                 return i;
             }
         }
@@ -37,7 +47,7 @@ public:
     }
     
 private:
-    uint8_t mHeldNotes[NOTES_COUNT];
+    KeyboardStateNote mHeldNotes[NOTES_COUNT];
 };
 
 #endif
