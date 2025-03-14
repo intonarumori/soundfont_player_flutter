@@ -120,8 +120,8 @@
         double duration = [[event objectForKey:@"duration"] doubleValue];
         int note = [[event objectForKey:@"note"] intValue];
         int velocity = [[event objectForKey:@"velocity"] intValue];
-        track.addEvent({timestamp, 0x90, (uint8_t)note, (uint8_t)velocity, 0});
-        track.addEvent({timestamp + duration, 0x80, (uint8_t)note, (uint8_t)velocity, 0});
+        track.addEvent({ timestamp, TrackEventType::noteOn, (uint8_t)note, (uint8_t)velocity, 0 });
+        track.addEvent({ timestamp + duration, TrackEventType::noteOff, (uint8_t)note, (uint8_t)velocity, 0 });
     }
     _kernel.setTrack(sequenceIndex, trackIndex, track);
 }
@@ -135,7 +135,7 @@
     NSMutableArray * array = [NSMutableArray array];
     for (int i = 0; i < track.eventCount; i++) {
         TrackEvent & event = track.events[i];
-        if (event.status == 0x90) {
+        if (event.type == TrackEventType::noteOn) {
             // TODO: proper handling of duration
             [array addObject:@{
                 @"timestamp": [NSNumber numberWithDouble:event.timestamp],

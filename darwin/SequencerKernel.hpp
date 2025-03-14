@@ -14,54 +14,9 @@
 #import "TPCircularBuffer.h"
 #import "KeyboardState.hpp"
 #include <mach/mach_time.h>
+#import "EventSequence.hpp"
 
 #ifdef __cplusplus
-
-struct PlayingNote {
-    int16_t shiftedNote;
-    int16_t eventNote;
-    bool active;
-};
-
-struct PlayingNotes {
-    
-    PlayingNotes() {
-        for (int i = 0; i < 16; i++) {
-            mPlayingNotes[i].active = false;
-        }
-    }
-    
-    bool isPlayingNote(int note) {
-        for (int i = 0; i < 16; i++) {
-            if (mPlayingNotes[i].active && mPlayingNotes[i].eventNote == note) return true;
-        }
-        return false;
-    }
-    
-    bool isActiveNote(int index, int * note) {
-        if (mPlayingNotes[index].active) {
-            *note = mPlayingNotes[index].eventNote;
-            return true;
-        }
-        return false;
-    }
-    
-    void deactiveNote(int index) {
-        mPlayingNotes[index].active = false;
-    }
-    
-    void activateNote(int index, int note, int shiftedNote) {
-        mPlayingNotes[index].active = true;
-        mPlayingNotes[index].eventNote = note;
-        mPlayingNotes[index].shiftedNote = shiftedNote;
-    }
-    
-    int getShiftedNote(int index) {
-        return mPlayingNotes[index].shiftedNote;
-    }
-    
-    PlayingNote mPlayingNotes[16];
-};
 
 class SequencerKernel {
 public:
@@ -224,12 +179,12 @@ public:
 
                         // TODO: use the timestamp to more accurately trigger the midi notes
                         // Since the diff is under 1 ms right now, we can improve this later
-//                        uint64_t timestamp = heldNotes.getTimestamp(i);
-//                        uint64_t diffSeconds = blockStartTimestamp > timestamp ? blockStartTimestamp - timestamp : 0;
-//                        mach_timebase_info_data_t timebase;
-//                        mach_timebase_info(&timebase);
-//                        uint64_t milliseconds = diffSeconds * timebase.numer / timebase.denom / NSEC_PER_MSEC;
-                        //printf("Diff timestamp %llu\n", milliseconds);
+                        uint64_t timestamp = heldNotes.getTimestamp(i);
+                        uint64_t diffSeconds = blockStartTimestamp > timestamp ? blockStartTimestamp - timestamp : 0;
+                        mach_timebase_info_data_t timebase;
+                        mach_timebase_info(&timebase);
+                        uint64_t milliseconds = diffSeconds * timebase.numer / timebase.denom / NSEC_PER_USEC;
+                        printf("Diff timestamp %llu\n", milliseconds);
                         
                         for (int j = 0; j < 16; j++) {
                             int note;
@@ -245,7 +200,10 @@ public:
             }
         }
         
-
+        if (!mPlaying) {
+            return noErr;
+        }
+        
         double tempo = mTempo;
         double beatPosition = 0.0;
         
@@ -257,12 +215,10 @@ public:
             mMusicalContextBlock(&tempo, NULL, NULL, &beatPosition, NULL, NULL);
         }
         
-        if (mPlaying) {
-            mPlayheadPosition = fmod(beatPosition, sequence.length);
-        } else {
-            return noErr;
-        }
+        mPlayheadPosition = fmod(beatPosition, sequence.length);
         
+
+        ///
         
         bool transportMoving = false;
         
@@ -274,7 +230,8 @@ public:
                 transportMoving = (transportStateFlags & AUHostTransportStateMoving) != 0;
             }
         }
-                
+        if (!transportMoving) return noErr;
+
         // the length of the sequencer loop in musical time (8.0 == 8 quarter notes)
         double lengthInSamples = sequence.length / tempo * 60. * mSampleRate;
         double beatPositionInSamples = beatPosition / tempo * 60. * mSampleRate;
@@ -284,7 +241,6 @@ public:
         double bufferStartTime = fmod(beatPositionInSamples, lengthInSamples);
         double bufferEndTime = bufferStartTime + frameCount;
 
-        if (!transportMoving) return noErr;
 
         // Using the `mChordPattern` as the basis of repeats
         if (mRepeating)
@@ -399,73 +355,12 @@ public:
                             double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
                             offset = eventTime + remainingFramesInBuffer;
                         }
-                        
-                        AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
-                        
-
+                        //AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
                     }
                 }
             }
         }
-        
-        // Using the `sequence` as the basis of repeats
-        if (false)
-        {
-            for (int i = 0; i < sequence.eventCount; i++) {
-                // get the event timestamp, given in musical time (e.g., 1.25)
-                MIDIEvent event = sequence.events[i];
-                // convert the timestamp to sample time (e.g, 55125)
-                double eventTime = event.timestamp / tempo * 60. * mSampleRate;
                 
-                bool eventIsInCurrentBuffer = eventTime >= bufferStartTime && eventTime < bufferEndTime;
-                // there is a loop transition in the current buffer
-                bool loopsAround = bufferEndTime > lengthInSamples && eventTime < fmod(bufferEndTime, lengthInSamples);
-                
-                // check if the event should occur within the current buffer OR there is a loop transition
-                if (eventIsInCurrentBuffer || loopsAround) {
-                    // the difference between the sample time of the event
-                    // and the beginning of the buffer gives us the offset, in samples
-                    double offset = eventTime - bufferStartTime;
-                    
-                    if (loopsAround) {
-                        // in case of a loop transitition, add the remaining frames of the current buffer to the offset
-                        double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
-                        offset = eventTime + remainingFramesInBuffer;
-                    }
-                   
-                    // pass events to the MIDI output block provided by the host
-                    AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
-                    switch (event.status) {
-                        case 0x90: {
-                            // Only output notes if we are holding something
-                            for (uint8_t note = 0; note < 128; note++) {
-                                if (heldNotes.isNoteHeld(note)) {
-                                    for (int i = 0; i < 16; i++) {
-                                        if (!mPlayingNotes.isActiveNote(i, nullptr)) {
-                                            mPlayingNotes.activateNote(i, note, note);
-                                            uint8_t midiData[] = { event.status, note, event.data2 };
-                                            mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        } break;
-                        case 0x80: {
-                            for (int i = 0; i < 16; i++) {
-                                if (mPlayingNotes.isActiveNote(i, nullptr)) {
-                                    uint8_t shiftedNote = mPlayingNotes.getShiftedNote(i);
-                                    mPlayingNotes.deactiveNote(i);
-                                    uint8_t midiData[] = { event.status, shiftedNote, event.data2 };
-                                    mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
-                                }
-                            }
-                        } break;
-                    }
-                }
-            }
-        }
-        
         // MIDI
 //        AURenderEvent const *nextEvent = realtimeEventListHead;
 //        while(nextEvent != NULL) {
@@ -506,6 +401,7 @@ public:
 //            }
 //            nextEvent = nextEvent->head.next;
 //        }
+        
         return noErr;
     }
     
@@ -515,19 +411,19 @@ private:
     AUHostTransportStateBlock mTransportStateBlock;
     
     KeyboardState heldNotes;
-    bool mRepeating = false;
+    PlayingNotes mPlayingNotes;
     
     InternalChordPattern mPattern;
     
     bool mInternalClock = true;
     bool mPlaying = false;
-    uint32_t totalFrameCount = 0;
-    
-    double mTempo = 120.0;
-    
-    double mPlayheadPosition = 0.0;
+    bool mRepeating = false;
+    bool mRecording = false;
+    double mBeatQuantization = 0.25;
 
-    PlayingNotes mPlayingNotes;
+    uint32_t totalFrameCount = 0;
+    double mTempo = 120.0;
+    double mPlayheadPosition = 0.0;
     
     TPCircularBuffer fifoBuffer;
     MIDISequence sequence = {};

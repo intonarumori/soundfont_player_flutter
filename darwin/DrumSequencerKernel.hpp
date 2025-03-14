@@ -24,25 +24,25 @@ public:
     DrumSequencerKernel() {
         TPCircularBufferInit(&fifoBuffer, BUFFER_LENGTH);
         
-        sequences[0].tracks[0].addEvent({0.0, 0x90, 36, 100, 0});
-        sequences[0].tracks[0].addEvent({0.3, 0x80, 36, 0, 0});
-        sequences[0].tracks[0].addEvent({0.75, 0x90, 36, 100, 1});
-        sequences[0].tracks[0].addEvent({0.9, 0x80, 36, 0, 1});
-        sequences[0].tracks[0].addEvent({2.0, 0x90, 36, 100, 2});
-        sequences[0].tracks[0].addEvent({2.3, 0x80, 36, 0, 2});
-        sequences[0].tracks[0].addEvent({2.75, 0x90, 36, 100, 3});
-        sequences[0].tracks[0].addEvent({2.9, 0x80, 36, 0, 3});
+        sequences[0].tracks[0].addEvent({0.0, TrackEventType::noteOn, 36, 100, 0});
+        sequences[0].tracks[0].addEvent({0.3, TrackEventType::noteOff, 36, 0, 0});
+        sequences[0].tracks[0].addEvent({0.75, TrackEventType::noteOn, 36, 100, 1});
+        sequences[0].tracks[0].addEvent({0.9, TrackEventType::noteOff, 36, 0, 1});
+        sequences[0].tracks[0].addEvent({2.0, TrackEventType::noteOn, 36, 100, 2});
+        sequences[0].tracks[0].addEvent({2.3, TrackEventType::noteOff, 36, 0, 2});
+        sequences[0].tracks[0].addEvent({2.75, TrackEventType::noteOn, 36, 100, 3});
+        sequences[0].tracks[0].addEvent({2.9, TrackEventType::noteOff, 36, 0, 3});
 
-        sequences[0].tracks[1].addEvent({1.0, 0x90, 37, 100, 0});
-        sequences[0].tracks[1].addEvent({1.3, 0x80, 37, 0, 0});
-        sequences[0].tracks[1].addEvent({3.0, 0x90, 37, 100, 1});
-        sequences[0].tracks[1].addEvent({3.3, 0x80, 37, 0, 1});
-        sequences[0].tracks[1].addEvent({3.75, 0x90, 37, 100, 1});
-        sequences[0].tracks[1].addEvent({3.9, 0x80, 37, 0, 1});
+        sequences[0].tracks[1].addEvent({1.0, TrackEventType::noteOn, 37, 100, 0});
+        sequences[0].tracks[1].addEvent({1.3, TrackEventType::noteOff, 37, 0, 0});
+        sequences[0].tracks[1].addEvent({3.0, TrackEventType::noteOn, 37, 100, 1});
+        sequences[0].tracks[1].addEvent({3.3, TrackEventType::noteOff, 37, 0, 1});
+        sequences[0].tracks[1].addEvent({3.75, TrackEventType::noteOn, 37, 100, 1});
+        sequences[0].tracks[1].addEvent({3.9, TrackEventType::noteOff, 37, 0, 1});
 
         for (int i = 0; i < 8; i++) {
-            sequences[0].tracks[2].addEvent({i * 0.5, 0x90, 39, 100, 0});
-            sequences[0].tracks[2].addEvent({i * 0.5 + 0.2, 0x80, 39, 0, 0});
+            sequences[0].tracks[2].addEvent({i * 0.5, TrackEventType::noteOn, 39, 100, 0});
+            sequences[0].tracks[2].addEvent({i * 0.5 + 0.2, TrackEventType::noteOff, 39, 0, 0});
         }
     }
     
@@ -142,7 +142,6 @@ public:
         double bufferEndTimeSamples = bufferStartTimeSamples + frameCount;
         
         if (bufferEndTimeSamples > lengthInSamples) {
-            int previousSequenceIndex = currentSequenceIndex;
             processEvents(timestamp, currentSequenceIndex, sequenceLength, lengthInSamples, bufferStartTimeSamples, lengthInSamples, 0);
             if (currentSequenceIndex != queuedSequenceIndex && queuedSequenceIndex > -1) {
                 currentSequenceIndex = queuedSequenceIndex;
@@ -181,7 +180,8 @@ public:
                 double offset = eventTime - bufferStartTimeSamples + eventOffset;
                 
                 AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
-                uint8_t midiData[] = { event->status, event->data1, event->data2 };
+                uint8_t status = event->type == TrackEventType::noteOn ? 0x90 : 0x80;
+                uint8_t midiData[] = { status, event->data1, event->data2 };
                 mMIDIOutputEventBlock(sampleTime, 0, sizeof(midiData), midiData);
             }
         }
