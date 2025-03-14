@@ -8,12 +8,12 @@
 #pragma once
 
 #import <AudioToolbox/AudioToolbox.h>
+#include <mach/mach_time.h>
+#import <stdio.h>
 //#import <algorithm>
 //#import <vector>
-#import <stdio.h>
 #import "TPCircularBuffer.h"
 #import "KeyboardState.hpp"
-#include <mach/mach_time.h>
 #import "EventSequence.hpp"
 
 #ifdef __cplusplus
@@ -338,70 +338,8 @@ public:
                         }
                     }
                 }
-                
-                // End of the step
-                {
-                    double eventTime = (lengthInSamples / 16) * i + 4000;
-                    
-                    bool eventIsInCurrentBuffer = eventTime >= bufferStartTime && eventTime < bufferEndTime;
-                    bool loopsAround = bufferEndTime > lengthInSamples && eventTime < fmod(bufferEndTime, lengthInSamples);
-                    
-                    if (eventIsInCurrentBuffer || loopsAround) {
-                        // we should sound the event
-                        double offset = eventTime - bufferStartTime;
-                        
-                        if (loopsAround) {
-                            // in case of a loop transitition, add the remaining frames of the current buffer to the offset
-                            double remainingFramesInBuffer = lengthInSamples - bufferStartTime;
-                            offset = eventTime + remainingFramesInBuffer;
-                        }
-                        //AUEventSampleTime sampleTime = timestamp->mSampleTime + offset;
-                    }
-                }
             }
         }
-                
-        // MIDI
-//        AURenderEvent const *nextEvent = realtimeEventListHead;
-//        while(nextEvent != NULL) {
-//            switch (nextEvent->head.eventType) {
-//                case AURenderEventMIDI: {
-//                    const AUMIDIEvent & event = nextEvent->MIDI;
-//                    if (event.length == 3) {
-//                        uint8_t status = event.data[0] & 0xF0;
-//                        switch (status) {
-//                            case 0x90: // note on
-//                            {
-//                                uint8_t note = event.data[1];
-//                                uint8_t velocity = event.data[2];
-//                                printf("midi event NOTE ON %d %d\n", note, velocity);
-//                                if (velocity > 0) {
-//                                    heldNotes.pressNote(note);
-//                                } else {
-//                                    heldNotes.releaseNote(note);
-//                                }
-//                                heldNote = heldNotes.firstPressedNote();
-//                            } break;
-//                            case 0x80: // note off
-//                            {
-//                                uint8_t note = event.data[1];
-//                                uint8_t velocity = event.data[2];
-//                                printf("midi event NOTE OFF %d %d\n", note, velocity);
-//                                heldNotes.releaseNote(note);
-//                                heldNote = heldNotes.firstPressedNote();
-//                            } break;
-//                        }
-//                    }
-//                } break;
-//                case AURenderEventMIDIEventList:
-//                    printf("midi event list\n");
-//                    break;
-//                default:
-//                    break;
-//            }
-//            nextEvent = nextEvent->head.next;
-//        }
-        
         return noErr;
     }
     
